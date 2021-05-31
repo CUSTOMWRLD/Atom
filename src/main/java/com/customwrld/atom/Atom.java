@@ -1,0 +1,102 @@
+package com.customwrld.atom;
+
+import com.customwrld.atom.network.*;
+import com.customwrld.atom.pigeon.Listeners;
+import com.customwrld.atom.util.Logger;
+import com.customwrld.atom.util.timer.TimerManager;
+import com.customwrld.pigeon.Pigeon;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
+import lombok.Getter;
+
+import java.util.UUID;
+
+@Getter
+public class Atom {
+
+    // TODO: ADD FLAME PROFILES
+    // HH:mm:ss EEE, dd MMM yyyy
+    // TODO: Cached Guilds
+    // TODO: Friend Requests
+    // TODO: Partys
+    // TODO: Cooldowns
+    // TODO: Timers
+
+    @Getter
+    private static Atom atom;
+
+    private final Gson gson;
+
+    private final TimerManager manager;
+
+    private MongoClient mongoClient;
+    private MongoDatabase mongoDatabase;
+
+    private Pigeon pigeon;
+
+    public Atom() {
+        long start = System.currentTimeMillis();
+
+        Logger.log(Logger.Level.INFO, "Starting the initialization process of Atom.");
+
+        atom = this;
+
+        this.gson = new GsonBuilder().create();
+
+        this.manager = new TimerManager();
+
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Server.serverList.removeIf(server -> (System.currentTimeMillis() - server.getLastUpdated()) >= (1000 * 30));
+                    Conversation.conversationList.removeIf(Conversation::validate);
+                    Thread.sleep(5000);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
+        loadMongo();
+        loadCollections();
+        loadPigeon();
+        Rank.init();
+
+        Logger.log(Logger.Level.INFO, "Done (" + (System.currentTimeMillis() - start) + "ms)! Atom has successfully been initialized!");
+    }
+
+    private void loadMongo() {
+        this.mongoClient = new MongoClient("127.0.0.1", 27017);
+
+        this.mongoDatabase = mongoClient.getDatabase("CUSTOMWRLD");
+    }
+
+    private void loadPigeon() {
+        this.pigeon = new Pigeon();
+
+        this.pigeon.initialize("127.0.0.1", 5672, "customwrld", "atom");
+
+        this.pigeon.getConvertersRegistry()
+                .registerConvertersInPackage("com.customwrld.atom.pigeon.converters");
+
+        this.pigeon.getPayloadsRegistry()
+                .registerPayloadsInPackage("com.customwrld.atom.pigeon.payloads");
+
+        this.pigeon.getListenersRegistry().registerListener(new Listeners());
+
+        this.pigeon.setupDefaultUpdater();
+
+        this.pigeon.acceptDelivery();
+
+        CachedPlayer.cachedPlayerList.add(new CachedPlayer(UUID.fromString("239c8573-0675-4a78-82f3-d178c72d5dc9"), "oHate"));
+        CachedPlayer.cachedPlayerList.add(new CachedPlayer(UUID.fromString("91121d88-8a07-4bef-bc78-c80484e1b6b6"), "BitCrackIGN"));
+    }
+
+    private void loadCollections() {
+        Profile.collection = this.mongoDatabase.getCollection("profiles");
+        Rank.collection = this.mongoDatabase.getCollection("ranks");
+    }
+
+}
