@@ -7,14 +7,11 @@ import lombok.Getter;
 
 import java.util.UUID;
 
-@Getter
-@Payload
+@Getter @Payload
 public class MessagePlayerPayload extends BasePayload {
 
-    @Transmit
-    UUID player;
-    @Transmit
-    String message;
+    @Transmit UUID player;
+    @Transmit String message;
 
     public MessagePlayerPayload() {
         payloadId = "minecraft-messagePlayer";
@@ -27,7 +24,6 @@ public class MessagePlayerPayload extends BasePayload {
     }
 
     @Override
-    public void receive() {
-    }
+    public void receive() {}
 
 }

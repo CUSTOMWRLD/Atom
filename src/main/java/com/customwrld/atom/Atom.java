@@ -11,6 +11,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import lombok.Getter;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 @Getter
@@ -89,9 +90,6 @@ public class Atom {
         this.pigeon.setupDefaultUpdater();
 
         this.pigeon.acceptDelivery();
-
-        CachedPlayer.cachedPlayerList.add(new CachedPlayer(UUID.fromString("239c8573-0675-4a78-82f3-d178c72d5dc9"), "oHate"));
-        CachedPlayer.cachedPlayerList.add(new CachedPlayer(UUID.fromString("91121d88-8a07-4bef-bc78-c80484e1b6b6"), "BitCrackIGN"));
     }
 
     private void loadCollections() {

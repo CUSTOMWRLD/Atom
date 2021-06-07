@@ -7,6 +7,7 @@ import com.customwrld.atom.network.FriendRequest;
 import com.customwrld.atom.network.Profile;
 import com.customwrld.atom.pigeon.payloads.MessagePlayerPayload;
 import com.customwrld.atom.pigeon.payloads.OnlinePlayerRequestPayload;
+import com.customwrld.atom.pigeon.payloads.AtomStatsRequestPayload;
 import com.customwrld.atom.pigeon.payloads.ServerUpdatePayload;
 import com.customwrld.atom.pigeon.payloads.conversation.ConversationMessagePayload;
 import com.customwrld.atom.pigeon.payloads.conversation.ConversationReplyPayload;
@@ -31,6 +32,11 @@ public class Listeners implements Listener {
         CachedPlayer cachedPlayer = CachedPlayer.getPlayerByUuid(payload.getPlayer());
 
         payload.sendResponse(new OnlinePlayerRequestPayload(cachedPlayer != null && cachedPlayer.isOnline()));
+    }
+
+    @PayloadHandler
+    public void onAtomStatsRequest(AtomStatsRequestPayload payload) {
+        payload.sendResponse(new AtomStatsRequestPayload(System.currentTimeMillis()));
     }
 
     @PayloadHandler

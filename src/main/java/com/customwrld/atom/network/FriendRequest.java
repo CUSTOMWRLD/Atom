@@ -40,7 +40,6 @@ public class FriendRequest {
     }
 
     public static void removeRequests(UUID player, UUID otherPlayer) {
-
         Iterator<FriendRequest> iterator = friendRequestList.iterator();
 
         while (iterator.hasNext()) {

@@ -8,20 +8,14 @@ import lombok.Getter;
 
 import java.util.List;
 
-@Getter
-@Payload
+@Getter @Payload
 public class ServerUpdatePayload extends BasePayload {
 
-    @Transmit
-    String name;
-    @Transmit
-    Server.Type type;
-    @Transmit
-    Long uptime;
-    @Transmit
-    Double tps;
-    @Transmit
-    List<String> players;
+    @Transmit String name;
+    @Transmit String type;
+    @Transmit Long uptime;
+    @Transmit Double tps;
+    @Transmit List<String> players;
 
     private Server server;
 
@@ -29,7 +23,7 @@ public class ServerUpdatePayload extends BasePayload {
         payloadId = "minecraft-serverUpdate";
     }
 
-    public ServerUpdatePayload(String name, Server.Type type, Long uptime, Double tps, List<String> players) {
+    public ServerUpdatePayload(String name, String type, Long uptime, Double tps, List<String> players) {
         this();
         this.name = name;
         this.type = type;

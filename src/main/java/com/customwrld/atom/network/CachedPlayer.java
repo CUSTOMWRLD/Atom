@@ -17,10 +17,8 @@ public class CachedPlayer {
     // TODO: USE LATEST CONVERSATION
     private final String name;
     private final UUID uuid;
-    @Setter
-    private Server currentServer;
-    @Setter
-    private Conversation latestConversation;
+    @Setter private Server currentServer;
+    @Setter private Conversation latestConversation;
 
     public CachedPlayer(UUID uuid, String name) {
         this.name = name;
@@ -73,6 +71,12 @@ public class CachedPlayer {
 
     public boolean isOnline() {
         return cachedPlayerList.contains(this);
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof CachedPlayer && ((CachedPlayer) object).getUuid().equals(this.uuid);
+
     }
 
 }

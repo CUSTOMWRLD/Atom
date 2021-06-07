@@ -11,17 +11,16 @@ public class Logger {
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
 
     public static void log(Level level, String log) {
-        System.out.println(level.format(log));
+        System.out.println("[" + dateFormat.format(System.currentTimeMillis()) + level.format(log));
     }
 
     @Getter
     @AllArgsConstructor
     public enum Level {
-
-        INFO("[" + dateFormat.format(System.currentTimeMillis()) + " INFO]: {0}"),
-        WARNING("[" + dateFormat.format(System.currentTimeMillis()) + " WARNING]: {0}"),
-        DEBUG("[" + dateFormat.format(System.currentTimeMillis()) + " DEBUG]: {0}"),
-        ERROR("[" + dateFormat.format(System.currentTimeMillis()) + " ERROR]: {0}");
+        INFO( " INFO]: {0}"),
+        WARNING(" WARNING]: {0}"),
+        DEBUG(" DEBUG]: {0}"),
+        ERROR(" ERROR]: {0}");
 
         private final String string;
 

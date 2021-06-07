@@ -7,16 +7,12 @@ import lombok.Getter;
 
 import java.util.UUID;
 
-@Getter
-@Payload
+@Getter @Payload
 public class ConversationMessagePayload extends BasePayload {
 
-    @Transmit
-    UUID initiator;
-    @Transmit
-    UUID target;
-    @Transmit
-    String message;
+    @Transmit UUID initiator;
+    @Transmit UUID target;
+    @Transmit String message;
 
     public ConversationMessagePayload() {
         payloadId = "minecraft-conversationMessage";
@@ -30,7 +26,6 @@ public class ConversationMessagePayload extends BasePayload {
     }
 
     @Override
-    public void receive() {
-    }
+    public void receive() {}
 
 }

@@ -12,8 +12,7 @@ import lombok.Getter;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-@Getter
-@Payload
+@Getter @Payload
 public class OnlinePlayerRequestPayload extends FeedbackPayload {
 
     public OnlinePlayerRequestPayload() {
@@ -23,8 +22,7 @@ public class OnlinePlayerRequestPayload extends FeedbackPayload {
 
     //Request
 
-    @Transmit
-    UUID player;
+    @Transmit UUID player;
 
     @RequestConstructor
     public OnlinePlayerRequestPayload(UUID player, Consumer<OnlinePlayerRequestPayload> feedback) {
@@ -37,9 +35,7 @@ public class OnlinePlayerRequestPayload extends FeedbackPayload {
 
     //Response
 
-    @Transmit(direction =
-            RequiredState.RESPONSE)
-    boolean isOnline;
+    @Transmit(direction = RequiredState.RESPONSE) boolean isOnline;
 
     @ResponseConstructor
     public OnlinePlayerRequestPayload(boolean isOnline) {
@@ -50,7 +46,6 @@ public class OnlinePlayerRequestPayload extends FeedbackPayload {
     }
 
     @Override
-    public void receive() {
-    }
+    public void receive() {}
 
 }

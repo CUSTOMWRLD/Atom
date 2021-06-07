@@ -1,4 +1,4 @@
-package com.customwrld.atom.pigeon.payloads.proxy;
-
-public class PlayerSwitchPayload {
-}
+//package com.customwrld.atom.pigeon.payloads.proxy;
+//
+//public class PlayerSwitchPayload {
+//}
