@@ -11,15 +11,15 @@ public class Server {
     public static List<Server> serverList = new ArrayList<>();
 
     private final String name;
-    private final String type;
+    private final Gamemode gamemode;
     private final Long uptime;
     private final Double tps;
     private final Long lastUpdated;
     private final List<String> players;
 
-    public Server(String name, String type, Long uptime, Double tps, List<String> players) {
+    public Server(String name, Gamemode gamemode, Long uptime, Double tps, List<String> players) {
         this.name = name;
-        this.type = type;
+        this.gamemode = gamemode;
         this.uptime = uptime;
         this.tps = tps;
         this.players = players;
