@@ -1,24 +1,24 @@
 package com.customwrld.atom.pigeon;
 
 import com.customwrld.atom.Atom;
-import com.customwrld.atom.network.CachedPlayer;
-import com.customwrld.atom.network.Conversation;
-import com.customwrld.atom.network.FriendRequest;
-import com.customwrld.atom.network.Profile;
+import com.customwrld.atom.network.*;
+import com.customwrld.atom.pigeon.payloads.AtomStatsRequestPayload;
 import com.customwrld.atom.pigeon.payloads.MessagePlayerPayload;
 import com.customwrld.atom.pigeon.payloads.OnlinePlayerRequestPayload;
-import com.customwrld.atom.pigeon.payloads.AtomStatsRequestPayload;
 import com.customwrld.atom.pigeon.payloads.ServerUpdatePayload;
 import com.customwrld.atom.pigeon.payloads.conversation.ConversationMessagePayload;
 import com.customwrld.atom.pigeon.payloads.conversation.ConversationReplyPayload;
 import com.customwrld.atom.pigeon.payloads.friend.AcceptFriendRequestPayload;
 import com.customwrld.atom.pigeon.payloads.friend.CreateFriendRequestPayload;
 import com.customwrld.atom.pigeon.payloads.friend.DenyFriendRequestPayload;
+import com.customwrld.atom.pigeon.payloads.network.GamemodeRequestPayload;
+import com.customwrld.atom.pigeon.payloads.network.RegisterGamemodePayload;
 import com.customwrld.atom.util.Logger;
 import com.customwrld.atom.util.Util;
 import com.customwrld.pigeon.Pigeon;
 import com.customwrld.pigeon.annotations.PayloadHandler;
 import com.customwrld.pigeon.annotations.PayloadListener;
+import com.customwrld.pigeon.feedback.RequiredState;
 import com.customwrld.pigeon.listeners.Listener;
 
 import java.util.Arrays;
@@ -166,6 +166,21 @@ public class Listeners implements Listener {
 
         friendRequest.getTimer().stop();
         FriendRequest.removeRequests(initiator, target);
+    }
+
+    @PayloadHandler(requiredState = RequiredState.REQUEST)
+    public void onGamemodeRequest(GamemodeRequestPayload payload) {
+        String name = payload.getName();
+
+        Gamemode gamemode = Gamemode.getByName(name);
+
+        payload.sendResponse(new GamemodeRequestPayload(gamemode));
+    }
+
+    @PayloadHandler
+    public void onRegisterGamemode(RegisterGamemodePayload payload) {
+        var gamemode = payload.getGamemode();
+        Gamemode.save(gamemode);
     }
 
 }
