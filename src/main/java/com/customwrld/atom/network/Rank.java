@@ -56,7 +56,7 @@ public class Rank {
         return null;
     }
 
-    public static void init() {
+    public static void loadAll() {
         try (MongoCursor<Document> cursor = collection.find().iterator()) {
             while (cursor.hasNext()) {
                 Document document = cursor.next();
