@@ -11,9 +11,6 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import lombok.Getter;
 
-import java.util.Arrays;
-import java.util.UUID;
-
 @Getter
 public class Atom {
 
@@ -63,7 +60,9 @@ public class Atom {
         loadMongo();
         loadCollections();
         loadPigeon();
-        Rank.init();
+
+        Rank.loadAll();
+        Gamemode.loadAll();
 
         Logger.log(Logger.Level.INFO, "Done (" + (System.currentTimeMillis() - start) + "ms)! Atom has successfully been initialized!");
     }
@@ -95,6 +94,7 @@ public class Atom {
     private void loadCollections() {
         Profile.collection = this.mongoDatabase.getCollection("profiles");
         Rank.collection = this.mongoDatabase.getCollection("ranks");
+        Gamemode.collection = this.mongoDatabase.getCollection("gamemodes");
     }
 
 }
