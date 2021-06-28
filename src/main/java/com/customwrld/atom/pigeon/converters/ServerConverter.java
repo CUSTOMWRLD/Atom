@@ -29,7 +29,7 @@ public class ServerConverter extends Converter<Server> {
 
             return new Server(
                     data.get("name").getAsString(),
-                    data.get("type").getAsString(),
+                    GamemodeConverter.Utils.convertToValue(data.get("gamemode")),
                     data.get("uptime").getAsLong(),
                     data.get("tps").getAsDouble(),
                     ListConverter.Utils.convertToValue(data.get("players"), String.class)
@@ -40,7 +40,7 @@ public class ServerConverter extends Converter<Server> {
             JsonObject data = new JsonObject();
 
             data.add("name", new JsonPrimitive(value.getName()));
-            data.add("type", new JsonPrimitive(value.getType()));
+            data.add("gamemode", GamemodeConverter.Utils.convertToSimple(value.getGamemode()));
             data.add("uptime", new JsonPrimitive(value.getUptime()));
             data.add("tps", new JsonPrimitive(value.getTps()));
             data.add("players", ListConverter.Utils.convertToSimple(value.getPlayers(), String.class));

@@ -13,9 +13,6 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import lombok.Getter;
 
-import java.util.Arrays;
-import java.util.UUID;
-
 @Getter
 public class Atom {
 
@@ -61,9 +58,12 @@ public class Atom {
         }).start();
 
         loadMongo();
+        loadCollections();
         loadPigeon();
 
         new CommonLib(this.mongoClient, this.mongoDatabase, this.pigeon);
+
+        Gamemode.loadAll();
 
         Logger.log(Logger.Level.INFO, "Done (" + (System.currentTimeMillis() - start) + "ms)! Atom has successfully been initialized!");
     }
@@ -90,6 +90,10 @@ public class Atom {
         this.pigeon.setupDefaultUpdater();
 
         this.pigeon.acceptDelivery();
+    }
+
+    private void loadCollections() {
+        Gamemode.collection = this.mongoDatabase.getCollection("gamemodes");
     }
 
 }

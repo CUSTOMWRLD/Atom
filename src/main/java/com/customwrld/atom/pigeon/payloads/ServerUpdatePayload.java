@@ -1,5 +1,6 @@
 package com.customwrld.atom.pigeon.payloads;
 
+import com.customwrld.atom.network.Gamemode;
 import com.customwrld.atom.network.Server;
 import com.customwrld.pigeon.annotations.Payload;
 import com.customwrld.pigeon.annotations.Transmit;
@@ -12,7 +13,7 @@ import java.util.List;
 public class ServerUpdatePayload extends BasePayload {
 
     @Transmit String name;
-    @Transmit String type;
+    @Transmit Gamemode gamemode;
     @Transmit Long uptime;
     @Transmit Double tps;
     @Transmit List<String> players;
@@ -24,10 +25,10 @@ public class ServerUpdatePayload extends BasePayload {
         payloadId = "server-serverUpdate";
     }
 
-    public ServerUpdatePayload(String name, String type, Long uptime, Double tps, List<String> players, Integer maxPlayers) {
+    public ServerUpdatePayload(String name, Gamemode gamemode, Long uptime, Double tps, List<String> players, Integer maxPlayers) {
         this();
         this.name = name;
-        this.type = type;
+        this.gamemode = gamemode;
         this.uptime = uptime;
         this.tps = tps;
         this.players = players;
@@ -36,7 +37,7 @@ public class ServerUpdatePayload extends BasePayload {
 
     @Override
     public void receive() {
-        this.server = new Server(this.name, this.type, this.uptime, this.tps, this.players);
+        this.server = new Server(this.name, this.gamemode, this.uptime, this.tps, this.players);
     }
 
 }
