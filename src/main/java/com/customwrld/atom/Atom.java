@@ -4,7 +4,9 @@ import com.customwrld.atom.network.*;
 import com.customwrld.atom.pigeon.Listeners;
 import com.customwrld.atom.util.Logger;
 import com.customwrld.atom.util.timer.TimerManager;
+import com.customwrld.commonlib.CommonLib;
 import com.customwrld.pigeon.Pigeon;
+import com.customwrld.pigeon.payloads.bases.BasePayload;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mongodb.MongoClient;
@@ -18,7 +20,6 @@ import java.util.UUID;
 public class Atom {
 
     // TODO: ADD FLAME PROFILES
-    // HH:mm:ss EEE, dd MMM yyyy
     // TODO: Cached Guilds
     // TODO: Friend Requests
     // TODO: Partys
@@ -52,7 +53,6 @@ public class Atom {
             while (true) {
                 try {
                     Server.serverList.removeIf(server -> (System.currentTimeMillis() - server.getLastUpdated()) >= (1000 * 30));
-                    Conversation.conversationList.removeIf(Conversation::validate);
                     Thread.sleep(5000);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -61,9 +61,9 @@ public class Atom {
         }).start();
 
         loadMongo();
-        loadCollections();
         loadPigeon();
-        Rank.init();
+
+        new CommonLib(this.mongoClient, this.mongoDatabase, this.pigeon);
 
         Logger.log(Logger.Level.INFO, "Done (" + (System.currentTimeMillis() - start) + "ms)! Atom has successfully been initialized!");
     }
@@ -90,11 +90,6 @@ public class Atom {
         this.pigeon.setupDefaultUpdater();
 
         this.pigeon.acceptDelivery();
-    }
-
-    private void loadCollections() {
-        Profile.collection = this.mongoDatabase.getCollection("profiles");
-        Rank.collection = this.mongoDatabase.getCollection("ranks");
     }
 
 }

@@ -20,8 +20,6 @@ public class OnlinePlayerRequestPayload extends FeedbackPayload {
         this.payloadTimeout = 10000;
     }
 
-    //Request
-
     @Transmit UUID player;
 
     @RequestConstructor
@@ -32,8 +30,6 @@ public class OnlinePlayerRequestPayload extends FeedbackPayload {
 
         this.feedback = feedback;
     }
-
-    //Response
 
     @Transmit(direction = RequiredState.RESPONSE) boolean isOnline;
 

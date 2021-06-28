@@ -25,8 +25,6 @@ public class AtomStatsRequestPayload extends FeedbackPayload {
         this.payloadTimeout = 10000;
     }
 
-    //Request
-
     @RequestConstructor
     public AtomStatsRequestPayload(Consumer<AtomStatsRequestPayload> feedback) {
         this();
@@ -35,8 +33,6 @@ public class AtomStatsRequestPayload extends FeedbackPayload {
 
         this.feedback = feedback;
     }
-
-    //Response
 
     @Transmit(direction = RequiredState.RESPONSE) Long latency;
     @Transmit(direction = RequiredState.RESPONSE) Long uptime;

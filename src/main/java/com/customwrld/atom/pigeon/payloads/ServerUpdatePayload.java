@@ -16,20 +16,22 @@ public class ServerUpdatePayload extends BasePayload {
     @Transmit Long uptime;
     @Transmit Double tps;
     @Transmit List<String> players;
+    @Transmit Integer maxPlayers;
 
     private Server server;
 
     public ServerUpdatePayload() {
-        payloadId = "minecraft-serverUpdate";
+        payloadId = "server-serverUpdate";
     }
 
-    public ServerUpdatePayload(String name, String type, Long uptime, Double tps, List<String> players) {
+    public ServerUpdatePayload(String name, String type, Long uptime, Double tps, List<String> players, Integer maxPlayers) {
         this();
         this.name = name;
         this.type = type;
         this.uptime = uptime;
         this.tps = tps;
         this.players = players;
+        this.maxPlayers = maxPlayers;
     }
 
     @Override

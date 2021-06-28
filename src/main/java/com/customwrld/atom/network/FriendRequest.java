@@ -4,6 +4,7 @@ import com.customwrld.atom.Atom;
 import com.customwrld.atom.pigeon.payloads.MessagePlayerPayload;
 import com.customwrld.atom.timers.FriendRequestTimer;
 import com.customwrld.atom.util.Util;
+import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.pigeon.Pigeon;
 import lombok.Getter;
 
@@ -55,11 +56,11 @@ public class FriendRequest {
     public void accept() {
         Pigeon pigeon = Atom.getAtom().getPigeon();
 
-        Profile initiatorProfile = new Profile(initiator);
-        Profile targetProfile = new Profile(target);
+        Profile initiatorProfile = Profile.getProfile(initiator);
+        Profile targetProfile = Profile.getProfile(target);
 
-        pigeon.broadcast(new MessagePlayerPayload(target, "&aYou are now friends with " + Util.getColoredName(initiatorProfile)));
-        pigeon.broadcast(new MessagePlayerPayload(initiator, "&aYou are now friends with " + Util.getColoredName(targetProfile)));
+        pigeon.broadcast(new MessagePlayerPayload(target, "&aYou are now friends with " + initiatorProfile.getName()));
+        pigeon.broadcast(new MessagePlayerPayload(initiator, "&aYou are now friends with " + targetProfile.getName()));
 
         initiatorProfile.getFriends().add(target);
         targetProfile.getFriends().add(initiator);

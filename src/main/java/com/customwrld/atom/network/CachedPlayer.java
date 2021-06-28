@@ -1,42 +1,57 @@
 package com.customwrld.atom.network;
 
 import com.customwrld.atom.Atom;
+import com.customwrld.atom.pigeon.payloads.conversation.ConversationFromPayload;
+import com.customwrld.atom.pigeon.payloads.conversation.ConversationToPayload;
 import com.customwrld.atom.timers.PartyPlayerOfflineTimer;
+import com.customwrld.pigeon.Pigeon;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 public class CachedPlayer {
 
-    public static List<CachedPlayer> cachedPlayerList = new ArrayList<>();
+    @Getter private static final Map<UUID, CachedPlayer> cachedPlayerList = new HashMap<>();
 
-    // TODO: USE LATEST CONVERSATION
     private final String name;
     private final UUID uuid;
-    @Setter private Server currentServer;
-    @Setter private Conversation latestConversation;
+    @Setter private String currentServer;
+    @Setter private CachedPlayer lastMessaged;
 
     public CachedPlayer(UUID uuid, String name) {
         this.name = name;
         this.uuid = uuid;
     }
 
-    public CachedPlayer(UUID uuid, String name, Server currentServer) {
+    public CachedPlayer(UUID uuid, String name, String currentServer) {
         this.name = name;
         this.uuid = uuid;
         this.currentServer = currentServer;
     }
 
-    public void playerJoin(CachedPlayer cachedPlayer) {
-        PartyPlayerOfflineTimer playerOfflineTimer = this.getPartyPlayerOfflineTimer();
+    public void sendMessage(CachedPlayer target, String message) {
+        Pigeon pigeon = Atom.getAtom().getPigeon();
 
-        if (playerOfflineTimer != null) {
-            playerOfflineTimer.stop();
-        }
+        pigeon.broadcast(new ConversationToPayload(this.uuid, target.getUuid(), message));
+        pigeon.broadcast(new ConversationFromPayload(this.uuid, target.getUuid(), message));
+
+        this.lastMessaged = target;
+        target.setLastMessaged(this);
+    }
+
+    public void reply(String message) {
+        Pigeon pigeon = Atom.getAtom().getPigeon();
+
+        pigeon.broadcast(new ConversationToPayload(this.uuid, this.lastMessaged.getUuid(), message));
+        pigeon.broadcast(new ConversationFromPayload(this.uuid, this.lastMessaged.getUuid(), message));
+
+        this.lastMessaged.setLastMessaged(this);
+    }
+
+    public void playerJoin(CachedPlayer cachedPlayer) {
+
     }
 
     public void serverSwitch() {
@@ -44,8 +59,6 @@ public class CachedPlayer {
     }
 
     public void playerDisconnect(CachedPlayer cachedPlayer) {
-        this.endConversations();
-
         Party party = Party.getPartyByPlayer(cachedPlayer);
 
         if (party != null) {
@@ -53,30 +66,21 @@ public class CachedPlayer {
         }
     }
 
-    public void endConversations() {
-        for (Conversation conversation : Conversation.conversationList) {
-            if (conversation.getMembers().contains(this.uuid)) {
-                conversation.endConversation();
-            }
-        }
-    }
-
     public PartyPlayerOfflineTimer getPartyPlayerOfflineTimer() {
-        return (PartyPlayerOfflineTimer) Atom.getAtom().getManager().getTimers().stream().filter(timer -> timer instanceof PartyPlayerOfflineTimer && ((PartyPlayerOfflineTimer) timer).cachedPlayer.getUuid().equals(this.uuid)).findFirst().orElse(null);
+        return (PartyPlayerOfflineTimer) Atom.getAtom().getManager().getTimers().stream().filter(timer -> timer instanceof PartyPlayerOfflineTimer && ((PartyPlayerOfflineTimer) timer).getCachedPlayer().getUuid().equals(this.uuid)).findFirst().orElse(null);
     }
 
     public static CachedPlayer getPlayerByUuid(UUID uuid) {
-        return cachedPlayerList.stream().filter(player -> player.getUuid().equals(uuid)).findFirst().orElse(null);
+        return cachedPlayerList.get(uuid);
     }
 
     public boolean isOnline() {
-        return cachedPlayerList.contains(this);
+        return cachedPlayerList.containsKey(this.uuid);
     }
 
     @Override
     public boolean equals(Object object) {
         return object instanceof CachedPlayer && ((CachedPlayer) object).getUuid().equals(this.uuid);
-
     }
 
 }

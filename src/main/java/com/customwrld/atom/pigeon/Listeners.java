@@ -2,30 +2,82 @@ package com.customwrld.atom.pigeon;
 
 import com.customwrld.atom.Atom;
 import com.customwrld.atom.network.CachedPlayer;
-import com.customwrld.atom.network.Conversation;
 import com.customwrld.atom.network.FriendRequest;
-import com.customwrld.atom.network.Profile;
+import com.customwrld.atom.network.Server;
+import com.customwrld.atom.pigeon.payloads.AtomStatsRequestPayload;
 import com.customwrld.atom.pigeon.payloads.MessagePlayerPayload;
 import com.customwrld.atom.pigeon.payloads.OnlinePlayerRequestPayload;
-import com.customwrld.atom.pigeon.payloads.AtomStatsRequestPayload;
 import com.customwrld.atom.pigeon.payloads.ServerUpdatePayload;
 import com.customwrld.atom.pigeon.payloads.conversation.ConversationMessagePayload;
 import com.customwrld.atom.pigeon.payloads.conversation.ConversationReplyPayload;
 import com.customwrld.atom.pigeon.payloads.friend.AcceptFriendRequestPayload;
 import com.customwrld.atom.pigeon.payloads.friend.CreateFriendRequestPayload;
 import com.customwrld.atom.pigeon.payloads.friend.DenyFriendRequestPayload;
-import com.customwrld.atom.util.Logger;
-import com.customwrld.atom.util.Util;
+import com.customwrld.atom.pigeon.payloads.proxy.*;
+import com.customwrld.atom.timers.PartyPlayerOfflineTimer;
+import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.pigeon.Pigeon;
 import com.customwrld.pigeon.annotations.PayloadHandler;
 import com.customwrld.pigeon.annotations.PayloadListener;
 import com.customwrld.pigeon.listeners.Listener;
 
-import java.util.Arrays;
 import java.util.UUID;
 
 @PayloadListener
 public class Listeners implements Listener {
+
+    @PayloadHandler
+    public void onProxySwitch(ProxySwitchPayload payload) {
+        UUID uuid = payload.getUuid();
+        Profile profile = Profile.getProfile(uuid);
+        CachedPlayer player = CachedPlayer.getPlayerByUuid(payload.getUuid());
+        
+        if(player == null) {
+            player = new CachedPlayer(payload.getUuid(), payload.getPlayer(), payload.getServerTo());
+        }
+
+        CachedPlayer.getCachedPlayerList().remove(uuid);
+
+        if (profile != null) {
+            if (payload.getServerFrom() == null) {
+                PartyPlayerOfflineTimer playerOfflineTimer = player.getPartyPlayerOfflineTimer();
+
+                if (playerOfflineTimer != null) {
+                    playerOfflineTimer.stop();
+                }
+
+                System.out.println(profile.getName() + " permissions: " + profile.api().getAllPermissions());
+
+                if (profile.api().getAllPermissions().contains("flame.staff")) {
+                    Atom.getAtom().getPigeon().broadcast(new StaffConnectPayload(uuid, payload.getServerTo()));
+                }
+            } else {
+
+                System.out.println(profile.getName() + " permissions: " + profile.api().getAllPermissions());
+
+                if (profile.api().getAllPermissions().contains("flame.staff")) {
+                    Atom.getAtom().getPigeon().broadcast(new StaffSwitchPayload(uuid, payload.getServerFrom(), payload.getServerTo()));
+                }
+            }
+        }
+
+        player.setCurrentServer(payload.getServerTo());
+
+        CachedPlayer.getCachedPlayerList().put(uuid, player);
+    }
+
+    @PayloadHandler
+    public void onProxyDisconnect(ProxyDisconnectPayload payload) {
+        CachedPlayer.getCachedPlayerList().remove(payload.getUuid());
+
+        Profile profile = Profile.getProfile(payload.getUuid());
+
+        if (profile != null) {
+            if (profile.api().getAllPermissions().contains("flame.staff")) {
+                Atom.getAtom().getPigeon().broadcast(new StaffDisconnectPayload(profile.getId(), payload.getServer()));
+            }
+        }
+    }
 
     @PayloadHandler
     public void onOnlinePlayerRequest(OnlinePlayerRequestPayload payload) {
@@ -43,68 +95,74 @@ public class Listeners implements Listener {
     public void onConversationMessage(ConversationMessagePayload payload) {
         Pigeon pigeon = Atom.getAtom().getPigeon();
 
-        UUID initiator = payload.getInitiator();
-        UUID target = payload.getTarget();
+        CachedPlayer initiator = CachedPlayer.getPlayerByUuid(payload.getInitiator());
+        CachedPlayer target = CachedPlayer.getPlayerByUuid(payload.getTarget());
+
         String message = payload.getMessage();
 
-        CachedPlayer cachedPlayer = CachedPlayer.getPlayerByUuid(target);
-
-        if (cachedPlayer == null || !cachedPlayer.isOnline()) {
-            pigeon.broadcast(new MessagePlayerPayload(initiator, "&cThat player is currently not online."));
+        if (initiator == null || !initiator.isOnline()) {
+            System.out.println(CachedPlayer.getCachedPlayerList().keySet());
+            pigeon.broadcast(new MessagePlayerPayload(payload.getInitiator(), "&cAn error has occurred, please try rejoining the network."));
             return;
         }
 
-        Conversation conversation = Conversation.getConversation(Arrays.asList(initiator, target));
-
-        if (conversation == null) {
-            conversation = new Conversation(Arrays.asList(initiator, target));
+        if (target == null || !target.isOnline()) {
+            pigeon.broadcast(new MessagePlayerPayload(payload.getInitiator(), "&cThat player is currently not online."));
+            return;
         }
 
-        conversation.sendMessage(initiator, target, message);
+        initiator.sendMessage(target, message);
     }
 
     @PayloadHandler
     public void onConversationReply(ConversationReplyPayload payload) {
         Pigeon pigeon = Atom.getAtom().getPigeon();
 
-        UUID initiator = payload.getInitiator();
+        CachedPlayer initiator = CachedPlayer.getPlayerByUuid(payload.getInitiator());
         String message = payload.getMessage();
 
-        CachedPlayer cachedPlayer = CachedPlayer.getPlayerByUuid(initiator);
-
-        if (cachedPlayer == null || !cachedPlayer.isOnline()) {
-            Logger.log(Logger.Level.ERROR, initiator + " is not online but they attempted to reply.");
+        if (initiator == null || !initiator.isOnline()) {
+            pigeon.broadcast(new MessagePlayerPayload(payload.getInitiator(), "&cAn error has occurred, please try rejoining the network."));
             return;
         }
 
-        Conversation conversation = cachedPlayer.getLatestConversation();
+        CachedPlayer target = initiator.getLastMessaged();
 
-        if (conversation == null) {
-            pigeon.broadcast(new MessagePlayerPayload(initiator, "&cYou are currently not in a conversation with someone."));
+        if (target == null) {
+            pigeon.broadcast(new MessagePlayerPayload(payload.getInitiator(), "&cYou haven't started a conversation with anybody."));
             return;
         }
 
-        UUID target = null;
-
-        for (UUID uuid : conversation.getMembers()) {
-            if (!uuid.equals(initiator)) {
-                target = uuid;
-            }
+        if (!target.isOnline()) {
+            pigeon.broadcast(new MessagePlayerPayload(payload.getInitiator(), "&cThat player is currently not online."));
+            return;
         }
 
-        if (target != null) {
-            conversation.sendMessage(initiator, target, message);
+        Profile targetProfile = Profile.getProfile(target.getUuid());
+
+        if (targetProfile == null) {
+            pigeon.broadcast(new MessagePlayerPayload(payload.getInitiator(), "&cCould not resolve player information."));
+            return;
         }
+
+        Profile initiatorProfile = Profile.getProfile(initiator.getUuid());
+
+        if (initiatorProfile == null) {
+            pigeon.broadcast(new MessagePlayerPayload(payload.getInitiator(), "&cFailed to load your profile. Try again later."));
+            return;
+        }
+
+        if (targetProfile.api().isIgnoring(initiatorProfile) || !targetProfile.getOptionsProfile().isReceivingConversations()) {
+            pigeon.broadcast(new MessagePlayerPayload(payload.getInitiator(), "&cThat player is not receiving new conversations right now."));
+            return;
+        }
+
+        initiator.reply(message);
     }
 
     @PayloadHandler
     public void onServerUpdate(ServerUpdatePayload payload) {
         payload.getServer().updateServer();
-    }
-
-    @PayloadHandler
-    public void onMessagePlayer(MessagePlayerPayload payload) {
-        Logger.log(Logger.Level.DEBUG, payload.getPlayer() + " - " + payload.getMessage());
     }
 
     @PayloadHandler
@@ -123,12 +181,12 @@ public class Listeners implements Listener {
         friendRequest.getTimer().start();
         FriendRequest.friendRequestList.add(friendRequest);
 
-        pigeon.broadcast(new MessagePlayerPayload(initiator, "&eYou sent a friend request to " + Util.getColoredName(new Profile(payload.getTarget())) + "&e, they have 5 minutes to accept it!"));
+        // TODO: Might throw NPE
+        pigeon.broadcast(new MessagePlayerPayload(initiator, "&eYou sent a friend request to " + Profile.getProfile(payload.getTarget()).getName() + "&e, they have 5 minutes to accept it!"));
     }
 
     @PayloadHandler
     public void onAcceptFriendRequest(AcceptFriendRequestPayload payload) {
-        Logger.log(Logger.Level.DEBUG, "AcceptFriendRequestPayload Received");
         Pigeon pigeon = Atom.getAtom().getPigeon();
         UUID initiator = payload.getInitiator();
         UUID target = payload.getTarget();
@@ -158,11 +216,11 @@ public class Listeners implements Listener {
             return;
         }
 
-        Profile initiatorProfile = new Profile(initiator);
-        Profile targetProfile = new Profile(target);
+        Profile initiatorProfile = Profile.getProfile(initiator);
+        Profile targetProfile = Profile.getProfile(target);
 
-        pigeon.broadcast(new MessagePlayerPayload(target, Util.getColoredName(initiatorProfile) + " denied your friend request."));
-        pigeon.broadcast(new MessagePlayerPayload(initiator, "&cYou denied " + Util.getColoredName(targetProfile) + "'s friend request."));
+        pigeon.broadcast(new MessagePlayerPayload(target, "&c" + initiatorProfile.getName() + " denied your friend request."));
+        pigeon.broadcast(new MessagePlayerPayload(initiator, "&cYou denied " + targetProfile.getName() + "'s friend request."));
 
         friendRequest.getTimer().stop();
         FriendRequest.removeRequests(initiator, target);
