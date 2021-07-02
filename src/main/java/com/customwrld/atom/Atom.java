@@ -2,11 +2,12 @@ package com.customwrld.atom;
 
 import com.customwrld.atom.network.*;
 import com.customwrld.atom.pigeon.Listeners;
+
+import com.customwrld.atom.pigeon.listeners.PartyListener;
 import com.customwrld.atom.util.Logger;
 import com.customwrld.atom.util.timer.TimerManager;
 import com.customwrld.commonlib.CommonLib;
 import com.customwrld.pigeon.Pigeon;
-import com.customwrld.pigeon.payloads.bases.BasePayload;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mongodb.MongoClient;
@@ -86,6 +87,7 @@ public class Atom {
                 .registerPayloadsInPackage("com.customwrld.atom.pigeon.payloads");
 
         this.pigeon.getListenersRegistry().registerListener(new Listeners());
+        this.pigeon.getListenersRegistry().registerListener(new PartyListener());
 
         this.pigeon.setupDefaultUpdater();
 

@@ -35,15 +35,26 @@ public class PartyPlayerOfflineTimer extends Timer {
 
     @Override
     public void onComplete() {
-        Pigeon pigeon = Atom.getAtom().getPigeon();
+        // TODO
 
-        this.party.getMembers().remove(this.cachedPlayer);
+        //                    case OFFLINE -> {
+//        this.members.remove(player);
+//        this.sendPartyMessage(Component.text()
+//                .append(profile.api().getChatFormat())
+//                .append(Component.text(" has been removed from the party for being offline.", MC.CC.RED.getTextColor()))
+//                .build());
+//    }
 
-        String name = "PLAYER";// Util.getColoredName(new Profile(this.cachedPlayer.getUuid()));
 
-        for(CachedPlayer player : this.party.getMembers()) {
-            pigeon.broadcast(new MessagePlayerPayload(player.getUuid(), name + " &chas left the party due to being offline."));
-        }
+//        Pigeon pigeon = Atom.getAtom().getPigeon();
+//
+//        this.party.getMembers().remove(this.cachedPlayer);
+//
+//        String name = "PLAYER";// Util.getColoredName(new Profile(this.cachedPlayer.getUuid()));
+//
+//        for(CachedPlayer player : this.party.getMembers()) {
+//            pigeon.broadcast(new MessagePlayerPayload(player.getUuid(), name + " &chas left the party due to being offline."));
+//        }
     }
 
     @Override

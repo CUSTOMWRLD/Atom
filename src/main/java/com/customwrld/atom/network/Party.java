@@ -1,55 +1,119 @@
 package com.customwrld.atom.network;
 
+import com.customwrld.atom.Atom;
+import com.customwrld.atom.pigeon.payloads.MessagePlayerPayload;
+import com.customwrld.commonlib.modules.profile.Profile;
+import com.customwrld.commonlib.util.MC;
+import com.customwrld.pigeon.Pigeon;
 import lombok.Getter;
 import lombok.Setter;
+import net.kyori.adventure.text.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 public class Party {
 
-    public static List<Party> partyList = new ArrayList<>();
+    @Getter private static final Set<Party> partyList = new HashSet<>();
 
     private final UUID uuid;
-    @Setter
-    private CachedPlayer leader;
-    private final List<CachedPlayer> members;
+    private final List<UUID> members;
+    @Setter private UUID leader;
 
-    public Party(UUID uuid, CachedPlayer leader) {
-        this.uuid = uuid;
+    public Party(UUID leader) {
+        this.uuid = UUID.randomUUID();
         this.leader = leader;
-        this.members = new ArrayList<>();
+        this.members = new ArrayList<>(Collections.singletonList(leader));
+        partyList.add(this);
     }
 
-    public static Party getPartyByPlayer(CachedPlayer cachedPlayer) {
-        return partyList.stream().filter(party -> party.getMembers().contains(cachedPlayer)).findFirst().orElse(null);
+    public static Party getPartyByMember(UUID uuid) {
+        return partyList.stream().filter(party -> party.getMembers().contains(uuid)).findFirst().orElse(null);
     }
 
-    public boolean addMember(CachedPlayer cachedPlayer) {
-        if (members.contains(cachedPlayer))
-            return false;
+//    public boolean inviteMember(CachedPlayer player) {
+//        Pigeon pigeon = Atom.getAtom().getPigeon();
+//        Profile profile = Profile.getProfile(player.getUuid());
+//
+//        if (player.getPartyInvites().contains(this.leader.getUuid())) {
+//
+//        }
+//
+//        if (profile != null) {
+//            sendPartyMessage(Component.text()
+//                    .append(profile.api().getChatFormat())
+//                    .append(Component.text(" has been invited to the party!", MC.CC.GREEN.getTextColor()))
+//                    .build());
+//        } else {
+//            this.getLeader().sendMessage("Error", Component.text("Something went wrong while loading your profile.", MC.CC.RED.getTextColor()));
+//        }
+//
+//        // TODO Check if they are already invited
+//        // TODO: Invite Code
+//        return true;
+//    }
 
-        members.add(cachedPlayer);
-        return true;
+    public void addMember(CachedPlayer player) {
+        UUID uuid = player.getUuid();
+
+        if (this.members.contains(uuid)) {
+            player.sendMessage("Party", Component.text("You are already in that party.", MC.CC.RED.getTextColor()));
+            return;
+        }
+
+        Profile profile = Profile.getProfile(uuid);
+
+        if (profile != null) {
+            this.sendPartyMessage(Component.text()
+                    .append(profile.api().getChatFormat())
+                    .append(Component.text(" has joined the party.", MC.CC.GREEN.getTextColor()))
+                    .build());
+        }
+
+        Profile leader = Profile.getProfile(this.leader);
+
+        if (leader != null) {
+            player.sendMessage("Party", Component.text()
+                    .append(Component.text("You joined ", MC.CC.GRAY.getTextColor()))
+                    .append(leader.api().getChatFormat())
+                    .append(Component.text("'s party!", MC.CC.GRAY.getTextColor()))
+                    .build());
+        }
+
+        this.members.add(uuid);
     }
 
-    public boolean removeMember(CachedPlayer cachedPlayer) {
-        if (!members.contains(cachedPlayer))
-            return false;
-
-        members.remove(cachedPlayer);
-        return true;
+    public void removeMember(UUID uuid) {
+        this.getMembers().remove(uuid);
     }
 
-    public void sendPartyMessage(String message) {
-        // PartyMessagePayload
+    public void sendPartyMessage(UUID initiator, String message) {
+        Pigeon pigeon = Atom.getAtom().getPigeon();
+
+        Profile profile = Profile.getProfile(initiator);
+
+        if (profile != null) {
+            for (UUID uuid : this.getMembers()) {
+                pigeon.broadcast(new MessagePlayerPayload(uuid, MC.Chat.notificationMessage("Party",
+                        Component.text()
+                                .append(profile.api().getChatFormat())
+                                .append(Component.text(": ", MC.CC.GRAY.getTextColor()))
+                                .append(Component.text(message))
+                                .build())));
+            }
+        }
+    }
+
+    public void sendPartyMessage(Component message) {
+        Pigeon pigeon = Atom.getAtom().getPigeon();
+
+        for (UUID uuid : this.getMembers()) {
+            pigeon.broadcast(new MessagePlayerPayload(uuid, MC.Chat.notificationMessage("Party", message)));
+        }
     }
 
     public void disbandParty() {
-        // TODO: Include a reason
-        // PartyMessagePayload
+        this.sendPartyMessage(Component.text("The party has been disbanded by the leader.", MC.CC.RED.getTextColor()));
 
         partyList.remove(this);
     }

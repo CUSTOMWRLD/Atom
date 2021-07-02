@@ -5,8 +5,10 @@ import com.customwrld.atom.pigeon.payloads.MessagePlayerPayload;
 import com.customwrld.atom.timers.FriendRequestTimer;
 import com.customwrld.atom.util.Util;
 import com.customwrld.commonlib.modules.profile.Profile;
+import com.customwrld.commonlib.util.MC;
 import com.customwrld.pigeon.Pigeon;
 import lombok.Getter;
+import net.kyori.adventure.text.Component;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -59,8 +61,8 @@ public class FriendRequest {
         Profile initiatorProfile = Profile.getProfile(initiator);
         Profile targetProfile = Profile.getProfile(target);
 
-        pigeon.broadcast(new MessagePlayerPayload(target, "&aYou are now friends with " + initiatorProfile.getName()));
-        pigeon.broadcast(new MessagePlayerPayload(initiator, "&aYou are now friends with " + targetProfile.getName()));
+        pigeon.broadcast(new MessagePlayerPayload(target, Component.text("You are now friends with " + initiatorProfile.getName(), MC.CC.GREEN.getTextColor())));
+        pigeon.broadcast(new MessagePlayerPayload(initiator, Component.text("You are now friends with " + targetProfile.getName(), MC.CC.GREEN.getTextColor())));
 
         initiatorProfile.getFriends().add(target);
         targetProfile.getFriends().add(initiator);

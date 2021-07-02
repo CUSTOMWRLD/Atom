@@ -16,13 +16,15 @@ public class Server {
     private final Double tps;
     private final Long lastUpdated;
     private final List<String> players;
+    private final Integer maxPlayers;
 
-    public Server(String name, Gamemode gamemode, Long uptime, Double tps, List<String> players) {
+    public Server(String name, Gamemode gamemode, Long uptime, Double tps, List<String> players, Integer maxPlayers) {
         this.name = name;
         this.gamemode = gamemode;
         this.uptime = uptime;
         this.tps = tps;
         this.players = players;
+        this.maxPlayers = maxPlayers;
         this.lastUpdated = System.currentTimeMillis();
     }
 

@@ -19,8 +19,6 @@ public class ServerUpdatePayload extends BasePayload {
     @Transmit List<String> players;
     @Transmit Integer maxPlayers;
 
-    private Server server;
-
     public ServerUpdatePayload() {
         payloadId = "server-serverUpdate";
     }
@@ -37,7 +35,6 @@ public class ServerUpdatePayload extends BasePayload {
 
     @Override
     public void receive() {
-        this.server = new Server(this.name, this.gamemode, this.uptime, this.tps, this.players);
     }
 
 }
