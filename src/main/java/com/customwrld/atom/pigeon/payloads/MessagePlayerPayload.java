@@ -25,6 +25,8 @@ public class MessagePlayerPayload extends BasePayload {
     }
 
     @Override
-    public void receive() {}
+    public void receive() {
+
+    }
 
 }

@@ -33,7 +33,6 @@ import com.customwrld.pigeon.feedback.RequiredState;
 import com.customwrld.pigeon.listeners.Listener;
 import net.kyori.adventure.text.Component;
 
-import java.sql.NClob;
 import java.util.UUID;
 
 @PayloadListener
@@ -98,10 +97,11 @@ public class Listeners implements Listener {
         CachedPlayer.getCachedPlayerList().remove(payload.getUuid());
 
         if(player != null) {
-            Party party = Party.getPartyByMember(player.getUuid());
+            Party party = Party.getPartyByMember(payload.getUuid());
 
             if(party != null) {
-                new PartyPlayerOfflineTimer(player, party);
+                PartyPlayerOfflineTimer timer = new PartyPlayerOfflineTimer(payload.getUuid());
+                timer.start();
             }
         }
 

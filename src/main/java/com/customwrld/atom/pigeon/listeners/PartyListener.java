@@ -3,6 +3,7 @@ package com.customwrld.atom.pigeon.listeners;
 import com.customwrld.atom.Atom;
 import com.customwrld.atom.network.CachedPlayer;
 import com.customwrld.atom.network.Party;
+import com.customwrld.atom.network.PartyInvite;
 import com.customwrld.atom.pigeon.payloads.MessagePlayerPayload;
 import com.customwrld.atom.pigeon.payloads.party.*;
 import com.customwrld.commonlib.modules.profile.Profile;
@@ -79,7 +80,7 @@ public class PartyListener implements Listener {
             }
         }
 
-        party.disbandParty();
+        party.disbandParty("The party has been disbanded by the leader.");
     }
 
     @PayloadHandler
@@ -105,25 +106,25 @@ public class PartyListener implements Listener {
 
         if(party == null) {
             initiator.sendMessage("Party", Component.text("You've created a new party!", MC.CC.GRAY.getTextColor()));
-            new Party(initiatorUUID);
-        } else {
-            if(!party.getLeader().equals(initiator.getUuid())) {
-                initiator.sendMessage("Party", Component.text("You must be the leader to invite players.", MC.CC.RED.getTextColor()));
-                return;
-            }
-
-            if(party.getMembers().contains(targetUUID)) {
-                initiator.sendMessage("Party", Component.text("That player is already in the party.", MC.CC.RED.getTextColor()));
-                return;
-            }
+            party = new Party(initiatorUUID);
         }
 
-        if(target.getPartyInvites().contains(payload.getInitiator())) {
-            initiator.sendMessage("Party", Component.text("You've already invited that player to your party.", MC.CC.RED.getTextColor()));
+        if (!party.getLeader().equals(initiator.getUuid())) {
+            initiator.sendMessage("Party", Component.text("You must be the leader to invite players.", MC.CC.RED.getTextColor()));
             return;
         }
 
-        target.addPartyInvite(initiator);
+        if(party.getMembers().contains(targetUUID)) {
+            initiator.sendMessage("Party", Component.text("That player is already in the party.", MC.CC.RED.getTextColor()));
+            return;
+        }
+
+        if(target.getPartyInvite(party.getUuid()) != null) {
+            initiator.sendMessage("Party", Component.text("That player already has a pending invite.", MC.CC.RED.getTextColor()));
+            return;
+        }
+
+        target.addPartyInvite(party.getUuid(), initiatorUUID);
     }
 
     @PayloadHandler
@@ -144,14 +145,22 @@ public class PartyListener implements Listener {
             return;
         }
 
-        Party party = Party.getPartyByMember(targetUUID);
+        PartyInvite invite = initiator.getPlayerPartyInvite(targetUUID);
 
-        if(party != null && initiator.getPartyInvites().contains(targetUUID) && party.getLeader().equals(targetUUID)) {
-            initiator.getPartyInvites().remove(targetUUID);
-            party.addMember(initiator);
+        if(invite != null) {
+            Party party = Party.getPartyByUUID(invite.getPartyUUID());
+
+            if(party != null) {
+                party.addMember(initiator);
+            } else {
+                initiator.sendMessage("Party", Component.text("The party you attempted to join has already been disbanded.", MC.CC.RED.getTextColor()));
+            }
+
+            invite.getTimer().stop();
+
+            initiator.getPartyInvites().remove(invite.getInviterUUID());
         } else {
             initiator.sendMessage("Party", Component.text("That player hasn't invited you to join their party.", MC.CC.RED.getTextColor()));
-            initiator.getPartyInvites().remove(targetUUID);
         }
     }
 
@@ -209,7 +218,6 @@ public class PartyListener implements Listener {
         Party party = Party.getPartyByMember(initiatorUUID);
 
         if(party != null) {
-
             if(party.getLeader().equals(initiatorUUID)) {
                 initiator.sendMessage("Party", Component.text("You cannot leave your own party. Try disbanding it or promoting someone.", MC.CC.RED.getTextColor()));
                 return;
@@ -245,7 +253,36 @@ public class PartyListener implements Listener {
 
     @PayloadHandler
     public void onPartyTransfer(PartyTransferPayload payload) {
-        // TODO: WIP
+        Pigeon pigeon = Atom.getAtom().getPigeon();
+        UUID initiatorUUID = payload.getInitiator();
+        UUID targetUUID = payload.getTarget();
+        Profile profile = Profile.getProfile(targetUUID);
+        CachedPlayer initiator = CachedPlayer.getPlayerByUuid(initiatorUUID);
+
+        if (initiator == null) {
+            pigeon.broadcast(new MessagePlayerPayload(payload.getInitiator(),
+                    Component.text("An error has occurred, please try rejoining the network.", MC.CC.RED.getTextColor())));
+            return;
+        }
+
+        Party party = Party.getPartyByMember(initiatorUUID);
+
+        if(party != null) {
+
+            if(party.getLeader().equals(initiatorUUID)) {
+                if(profile != null) {
+                    party.sendPartyMessage(Component.text()
+                            .append(Component.text("The party has been transferred to ", MC.CC.RED.getTextColor()))
+                            .append(profile.api().getChatFormat())
+                            .build());
+                }
+                party.setLeader(targetUUID); // TODO: Check if they are offline, if they are start a 5 min timer to disband the party
+            } else {
+                initiator.sendMessage("Party", Component.text("You are not the leader of the party.", MC.CC.RED.getTextColor()));
+            }
+        } else {
+            initiator.sendMessage("Party", Component.text("You are not in a party. Consider creating one.", MC.CC.RED.getTextColor()));
+        }
     }
 
 }

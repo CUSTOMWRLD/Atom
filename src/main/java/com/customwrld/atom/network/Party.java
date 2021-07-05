@@ -14,21 +14,31 @@ import java.util.*;
 @Getter
 public class Party {
 
-    @Getter private static final Set<Party> partyList = new HashSet<>();
+    @Getter private static final List<Party> partyList = new ArrayList<>();
 
     private final UUID uuid;
     private final List<UUID> members;
-    @Setter private UUID leader;
+    private UUID leader;
+    private final Long createdAt;
 
     public Party(UUID leader) {
         this.uuid = UUID.randomUUID();
         this.leader = leader;
         this.members = new ArrayList<>(Collections.singletonList(leader));
+        this.createdAt = System.currentTimeMillis();
         partyList.add(this);
+    }
+
+    public static Party getPartyByUUID(UUID uuid) {
+        return partyList.stream().filter(party -> party.getUuid().equals(uuid)).findFirst().orElse(null);
     }
 
     public static Party getPartyByMember(UUID uuid) {
         return partyList.stream().filter(party -> party.getMembers().contains(uuid)).findFirst().orElse(null);
+    }
+
+    public void setLeader(UUID uuid) {
+        this.leader = uuid;
     }
 
 //    public boolean inviteMember(CachedPlayer player) {
@@ -61,6 +71,8 @@ public class Party {
             return;
         }
 
+        this.members.add(uuid);
+
         Profile profile = Profile.getProfile(uuid);
 
         if (profile != null) {
@@ -69,18 +81,6 @@ public class Party {
                     .append(Component.text(" has joined the party.", MC.CC.GREEN.getTextColor()))
                     .build());
         }
-
-        Profile leader = Profile.getProfile(this.leader);
-
-        if (leader != null) {
-            player.sendMessage("Party", Component.text()
-                    .append(Component.text("You joined ", MC.CC.GRAY.getTextColor()))
-                    .append(leader.api().getChatFormat())
-                    .append(Component.text("'s party!", MC.CC.GRAY.getTextColor()))
-                    .build());
-        }
-
-        this.members.add(uuid);
     }
 
     public void removeMember(UUID uuid) {
@@ -112,8 +112,8 @@ public class Party {
         }
     }
 
-    public void disbandParty() {
-        this.sendPartyMessage(Component.text("The party has been disbanded by the leader.", MC.CC.RED.getTextColor()));
+    public void disbandParty(String reason) {
+        this.sendPartyMessage(Component.text(reason, MC.CC.RED.getTextColor()));
 
         partyList.remove(this);
     }

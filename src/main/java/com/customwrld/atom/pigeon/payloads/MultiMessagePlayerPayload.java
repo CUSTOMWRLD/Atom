@@ -1,0 +1,33 @@
+package com.customwrld.atom.pigeon.payloads;
+
+import com.customwrld.pigeon.annotations.Payload;
+import com.customwrld.pigeon.annotations.Transmit;
+import com.customwrld.pigeon.payloads.bases.BasePayload;
+import lombok.Getter;
+import net.kyori.adventure.text.Component;
+
+import java.util.List;
+import java.util.UUID;
+
+@Getter @Payload
+public class MultiMessagePlayerPayload extends BasePayload {
+
+    @Transmit UUID player;
+    @Transmit List<Component> message;
+
+    public MultiMessagePlayerPayload() {
+        payloadId = "minecraft-multiMessagePlayer";
+    }
+
+    public MultiMessagePlayerPayload(UUID player, List<Component> message) {
+        this();
+        this.player = player;
+        this.message = message;
+    }
+
+    @Override
+    public void receive() {
+
+    }
+
+}
