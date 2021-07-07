@@ -1,12 +1,8 @@
 package com.customwrld.atom.network;
 
-import com.customwrld.atom.Atom;
-import com.customwrld.atom.pigeon.payloads.MessagePlayerPayload;
 import com.customwrld.atom.timers.FriendRequestTimer;
-import com.customwrld.atom.util.Util;
 import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
-import com.customwrld.pigeon.Pigeon;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 
@@ -56,16 +52,20 @@ public class FriendRequest {
     }
 
     public void accept() {
-        Pigeon pigeon = Atom.getAtom().getPigeon();
+
+
 
         Profile initiatorProfile = Profile.getProfile(initiator);
         Profile targetProfile = Profile.getProfile(target);
 
-        pigeon.broadcast(new MessagePlayerPayload(target, Component.text("You are now friends with " + initiatorProfile.getName(), MC.CC.GREEN.getTextColor())));
-        pigeon.broadcast(new MessagePlayerPayload(initiator, Component.text("You are now friends with " + targetProfile.getName(), MC.CC.GREEN.getTextColor())));
+        Player.sendNotification(this.target, "Friend",
+                Component.text("You are now friends with " + initiatorProfile.getName(), MC.CC.GREEN.getTextColor()));
 
-        initiatorProfile.getFriends().add(target);
-        targetProfile.getFriends().add(initiator);
+        Player.sendNotification(this.initiator, "Friend",
+                Component.text("You are now friends with " + targetProfile.getName(), MC.CC.GREEN.getTextColor()));
+
+        initiatorProfile.getFriends().add(this.target);
+        targetProfile.getFriends().add(this.initiator);
 
         initiatorProfile.save();
         targetProfile.save();

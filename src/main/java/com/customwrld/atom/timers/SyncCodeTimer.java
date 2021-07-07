@@ -18,12 +18,10 @@ public class SyncCodeTimer extends Timer {
     }
 
     @Override
-    public void onSecond() {
-    }
+    public void onSecond() {}
 
     @Override
-    public void onStart() {
-    }
+    public void onStart() {}
 
     @Override
     public void onComplete() {
@@ -31,7 +29,6 @@ public class SyncCodeTimer extends Timer {
     }
 
     @Override
-    public void onCancel() {
-    }
+    public void onCancel() {}
 
 }

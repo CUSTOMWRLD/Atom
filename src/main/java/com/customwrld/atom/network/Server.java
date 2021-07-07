@@ -1,5 +1,6 @@
 package com.customwrld.atom.network;
 
+import com.customwrld.commonlib.modules.network.Gamemode;
 import lombok.Getter;
 
 import java.util.ArrayList;

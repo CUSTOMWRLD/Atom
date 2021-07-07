@@ -12,13 +12,13 @@ public class SyncCode {
 
     public static List<SyncCode> syncCodeList = new ArrayList<>();
 
-    private final CachedPlayer cachedPlayer;
+    private final Player player;
     private final int code;
     private final SyncCodeTimer timer;
     private final long generatedAt;
 
-    public SyncCode(CachedPlayer cachedPlayer) {
-        this.cachedPlayer = cachedPlayer;
+    public SyncCode(Player player) {
+        this.player = player;
         this.code = Util.getRandomCode();
         this.timer = new SyncCodeTimer(this);
         this.generatedAt = System.currentTimeMillis();

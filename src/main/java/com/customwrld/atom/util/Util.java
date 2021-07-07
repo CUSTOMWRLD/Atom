@@ -1,11 +1,11 @@
 package com.customwrld.atom.util;
 
-import java.util.Random;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class Util {
 
     public static int getRandomCode() {
-        return new Random().nextInt(999999);
+        return Integer.parseInt(RandomStringUtils.randomNumeric(8));
     }
 
 }

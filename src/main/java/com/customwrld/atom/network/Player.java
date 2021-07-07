@@ -1,13 +1,13 @@
 package com.customwrld.atom.network;
 
 import com.customwrld.atom.Atom;
-import com.customwrld.atom.pigeon.payloads.MessagePlayerPayload;
-import com.customwrld.atom.pigeon.payloads.conversation.ConversationFromPayload;
-import com.customwrld.atom.pigeon.payloads.conversation.ConversationToPayload;
-import com.customwrld.atom.timers.PartyInviteTimer;
 import com.customwrld.atom.timers.PartyPlayerOfflineTimer;
+import com.customwrld.commonlib.modules.pigeon.payloads.conversation.ConversationFromPayload;
+import com.customwrld.commonlib.modules.pigeon.payloads.conversation.ConversationToPayload;
+import com.customwrld.commonlib.modules.pigeon.payloads.minecraft.MessagePlayerPayload;
 import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
+import com.customwrld.commonlib.util.PigeonUtil;
 import com.customwrld.pigeon.Pigeon;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,23 +16,24 @@ import net.kyori.adventure.text.Component;
 import java.util.*;
 
 @Getter
-public class CachedPlayer {
+@Setter
+public class Player {
 
-    @Getter private static final Map<UUID, CachedPlayer> cachedPlayerList = new HashMap<>();
+    @Getter private static final Map<UUID, Player> cachedPlayerList = new HashMap<>();
 
     private final String name;
     private final UUID uuid;
-    @Setter private Map<UUID, PartyInvite> partyInvites;
-    @Setter private String currentServer;
-    @Setter private CachedPlayer lastMessaged;
+    private final Map<UUID, PartyInvite> partyInvites;
+    private String currentServer;
+    private Player lastMessaged;
 
-    public CachedPlayer(UUID uuid, String name) {
+    public Player(UUID uuid, String name) {
         this.name = name;
         this.uuid = uuid;
         this.partyInvites = new HashMap<>();
     }
 
-    public CachedPlayer(UUID uuid, String name, String currentServer) {
+    public Player(UUID uuid, String name, String currentServer) {
         this.name = name;
         this.uuid = uuid;
         this.currentServer = currentServer;
@@ -68,7 +69,7 @@ public class CachedPlayer {
 
         Profile initiatorProfile = Profile.getProfile(inviterUUID);
         Profile targetProfile = Profile.getProfile(this.uuid);
-        CachedPlayer target = CachedPlayer.getPlayerByUuid(this.uuid);
+        Player target = Player.getPlayerByUuid(this.uuid);
 
         if(initiatorProfile != null && targetProfile != null && target != null) {
             Party party = Party.getPartyByUUID(partyUUID);
@@ -82,7 +83,7 @@ public class CachedPlayer {
                         .build());
             }
 
-            target.sendMessage("Party", Component.text()
+            Player.sendNotification(this.uuid, "Party", Component.text()
                     .append(initiatorProfile.api().getChatFormat())
                     .append(Component.text(" has invited you to join their party. You have 60 seconds to accept.", MC.CC.GRAY.getTextColor()))
                     .build());
@@ -94,48 +95,40 @@ public class CachedPlayer {
         }
     }
 
-    public void sendMessage(String prefix, Component message) {
-        Pigeon pigeon = Atom.getAtom().getPigeon();
-
-        pigeon.broadcast(new MessagePlayerPayload(this.uuid, MC.Chat.notificationMessage(prefix, message)));
-    }
-
-    public void sendConversationMessage(CachedPlayer target, String message) {
-        Pigeon pigeon = Atom.getAtom().getPigeon();
-
-        pigeon.broadcast(new ConversationToPayload(this.uuid, target.getUuid(), message));
-        pigeon.broadcast(new ConversationFromPayload(this.uuid, target.getUuid(), message));
+    public void sendConversationMessage(Player target, String message) {
+        PigeonUtil.broadcast(new ConversationToPayload(this.uuid, target.getUuid(), message));
+        PigeonUtil.broadcast(new ConversationFromPayload(this.uuid, target.getUuid(), message));
 
         this.lastMessaged = target;
         target.setLastMessaged(this);
     }
 
     public void reply(String message) {
-        Pigeon pigeon = Atom.getAtom().getPigeon();
-
-        pigeon.broadcast(new ConversationToPayload(this.uuid, this.lastMessaged.getUuid(), message));
-        pigeon.broadcast(new ConversationFromPayload(this.uuid, this.lastMessaged.getUuid(), message));
+        PigeonUtil.broadcast(new ConversationToPayload(this.uuid, this.lastMessaged.getUuid(), message));
+        PigeonUtil.broadcast(new ConversationFromPayload(this.uuid, this.lastMessaged.getUuid(), message));
 
         this.lastMessaged.setLastMessaged(this);
+    }
+
+    public static void sendNotification(UUID player, String prefix, Component message) {
+        PigeonUtil.broadcast(new MessagePlayerPayload(player, MC.Chat.notificationMessage(prefix, message)));
+    }
+
+    public static void sendMessage(UUID player, Component message) {
+        PigeonUtil.broadcast(new MessagePlayerPayload(player, message));
     }
 
     public PartyPlayerOfflineTimer getPartyPlayerOfflineTimer() {
         return (PartyPlayerOfflineTimer) Atom.getAtom().getManager().getTimers().stream().filter(timer -> timer instanceof PartyPlayerOfflineTimer && ((PartyPlayerOfflineTimer) timer).getPlayer().equals(this.uuid)).findFirst().orElse(null);
     }
 
-    public static CachedPlayer getPlayerByUuid(UUID uuid) {
+    public static Player getPlayerByUuid(UUID uuid) {
         return cachedPlayerList.get(uuid);
     }
 
-    public boolean isOnline() {
-        return cachedPlayerList.containsKey(this.uuid);
-    }
-
-
-
     @Override
     public boolean equals(Object object) {
-        return object instanceof CachedPlayer && ((CachedPlayer) object).getUuid().equals(this.uuid);
+        return object instanceof Player && ((Player) object).getUuid().equals(this.uuid);
     }
 
 }
