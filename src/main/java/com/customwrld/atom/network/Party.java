@@ -9,7 +9,10 @@ import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 @Getter
 public class Party {

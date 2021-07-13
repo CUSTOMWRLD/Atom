@@ -13,7 +13,9 @@ import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 @Getter
