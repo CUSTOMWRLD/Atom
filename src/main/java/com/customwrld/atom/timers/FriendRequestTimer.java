@@ -5,7 +5,6 @@ import com.customwrld.atom.network.FriendRequest;
 import com.customwrld.atom.network.Player;
 import com.customwrld.atom.util.timer.api.Timer;
 import com.customwrld.atom.util.timer.api.TimerType;
-import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
 import net.kyori.adventure.text.Component;
 
@@ -17,7 +16,7 @@ public class FriendRequestTimer extends Timer {
     public final FriendRequest friendRequest;
 
     public FriendRequestTimer(FriendRequest friendRequest) {
-        super(TimerType.COUNTDOWN, Atom.getAtom().getManager());
+        super(TimerType.COUNTDOWN, Atom.getAtom().getTimerManager());
         setDuration(TimeUnit.MINUTES.toMillis(5));
         this.friendRequest = friendRequest;
     }
@@ -32,11 +31,19 @@ public class FriendRequestTimer extends Timer {
     public void onComplete() {
         List<FriendRequest> friendRequestList = FriendRequest.friendRequestList;
 
-        Player.sendMessage(this.friendRequest.getInitiator(),
-                Component.text("Your friend request to " + Profile.getProfile(this.friendRequest.getTarget()).getName() + " has expired.", MC.CC.RED.getTextColor()));
+        Atom.getAtom().getProfilesManager()
+                .getProfile(this.friendRequest.getTarget())
+                .thenAccept(profile -> {
+                    Player.sendMessage(this.friendRequest.getInitiator(),
+                            Component.text("Your friend request to " + profile.getName() + " has expired.", MC.CC.RED.getTextColor()));
+                });
 
-        Player.sendMessage(this.friendRequest.getTarget(),
-                Component.text("The friend request from " + Profile.getProfile(this.friendRequest.getInitiator()).getName() + " has expired.", MC.CC.RED.getTextColor()));
+        Atom.getAtom().getProfilesManager()
+                .getProfile(this.friendRequest.getInitiator())
+                .thenAccept(profile -> {
+                    Player.sendMessage(this.friendRequest.getTarget(),
+                        Component.text("The friend request from " + profile.getName() + " has expired.", MC.CC.RED.getTextColor()));
+                });
 
         friendRequestList.remove(this.friendRequest);
     }

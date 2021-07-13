@@ -1,0 +1,86 @@
+package com.customwrld.atom.managers;
+
+import com.customwrld.commonlib.modules.profile.Profile;
+import com.customwrld.commonlib.modules.profile.ProfileQueryResult;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
+
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+public class ProfilesManager {
+
+    private Cache<UUID, Profile> cache;
+
+    public ProfilesManager(CacheManager cacheManager) {
+        this.cache = cacheManager.createCache("profiles",
+                CacheConfigurationBuilder.newCacheConfigurationBuilder(UUID.class, Profile.class,
+                        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100000, EntryUnit.ENTRIES)));
+    }
+
+    public CompletableFuture<ProfileQueryResult> createProfile(String name, UUID uuid) {
+        return createProfile(new Profile(name, uuid));
+    }
+
+    public CompletableFuture<ProfileQueryResult> createProfile(Profile profile) {
+        return new CompletableFuture<ProfileQueryResult>()
+                .completeAsync(() -> {
+                    try {
+                        if(getProfile(profile.getId()).get() != null) { return ProfileQueryResult.PROFILE_EXISTS; }
+                        updateProfile(profile);
+                        return ProfileQueryResult.CREATED_PROFILE;
+                    } catch(InterruptedException | ExecutionException e) {
+                        Thread.currentThread().interrupt();
+                        e.printStackTrace();
+                    }
+                    return ProfileQueryResult.FAILURE;
+                });
+    }
+
+    public void updateProfile(Profile profile) {
+        this.cache.put(profile.getId(), profile);
+        var result = Profile.getCollection().replaceOne(Filters.eq(profile.getId().toString()), profile.toDocument(), new ReplaceOptions().upsert(true));
+    }
+
+    public CompletableFuture<Profile> getProfile(String name) {
+        return new CompletableFuture<Profile>()
+                .completeAsync(() -> {
+                    for(Cache.Entry<UUID, Profile> ent : this.cache) {
+                        var profile = ent.getValue();
+                        if(profile.getName().equalsIgnoreCase(name))
+                            return profile;
+                    }
+
+                    var document = Profile.getCollection().find(Filters.eq("searchableName", name.toUpperCase())).first();
+                    if(document == null) { return null; }
+
+                    var profile = Profile.fromDocument(document);
+                    cache.put(profile.getId(), profile);
+
+                    return profile;
+                });
+    }
+
+    public CompletableFuture<Profile> getProfile(UUID uuid) {
+        return new CompletableFuture<Profile>()
+                .completeAsync(() -> {
+                    var profile = this.cache.get(uuid);
+                    if(profile != null) { return profile; }
+
+                    var document = Profile.getCollection().find(Filters.eq(uuid.toString())).first();
+                    if(document == null) { return null; }
+
+                    profile = Profile.fromDocument(document);
+                    cache.put(profile.getId(), profile);
+
+                    return profile;
+                });
+    }
+
+}

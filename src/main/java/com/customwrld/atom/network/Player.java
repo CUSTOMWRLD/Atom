@@ -1,6 +1,7 @@
 package com.customwrld.atom.network;
 
 import com.customwrld.atom.Atom;
+import com.customwrld.atom.managers.ProfilesManager;
 import com.customwrld.atom.timers.PartyPlayerOfflineTimer;
 import com.customwrld.commonlib.modules.pigeon.payloads.conversation.ConversationFromPayload;
 import com.customwrld.commonlib.modules.pigeon.payloads.conversation.ConversationToPayload;
@@ -8,12 +9,12 @@ import com.customwrld.commonlib.modules.pigeon.payloads.minecraft.MessagePlayerP
 import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
 import com.customwrld.commonlib.util.PigeonUtil;
-import com.customwrld.pigeon.Pigeon;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 @Getter
 @Setter
@@ -67,32 +68,44 @@ public class Player {
     public void addPartyInvite(UUID partyUUID, UUID inviterUUID) {
         // TODO: Check if they have receiving party invites toggled
 
-        Profile initiatorProfile = Profile.getProfile(inviterUUID);
-        Profile targetProfile = Profile.getProfile(this.uuid);
-        Player target = Player.getPlayerByUuid(this.uuid);
+        new Thread(() -> {
+            try {
+                final ProfilesManager profilesManager = Atom.getAtom().getProfilesManager();
 
-        if(initiatorProfile != null && targetProfile != null && target != null) {
-            Party party = Party.getPartyByUUID(partyUUID);
+                Profile initiatorProfile = profilesManager.getProfile(inviterUUID).get();
+                Profile targetProfile = profilesManager.getProfile(this.uuid).get();
+                Player target = Player.getPlayerByUuid(this.uuid);
 
-            if(party != null) {
-                party.sendPartyMessage(Component.text()
+                if(initiatorProfile != null || targetProfile != null || target != null) {
+                    Atom.getAtom().getPigeon().broadcast(new MessagePlayerPayload(inviterUUID, MC.Chat.notificationMessage("Party",
+                        Component.text("Unable to invite that player to the party.", MC.CC.GRAY.getTextColor()))));
+
+                    return;
+                }
+
+                Party party = Party.getPartyByUUID(partyUUID);
+
+                if(party != null) {
+                    party.sendPartyMessage(Component.text()
+                            .append(initiatorProfile.api().getChatFormat())
+                            .append(Component.text(" has invited ", MC.CC.GRAY.getTextColor()))
+                            .append(targetProfile.api().getChatFormat())
+                            .append(Component.text(" to the party!", MC.CC.GRAY.getTextColor()))
+                            .build());
+                }
+
+                Player.sendNotification(this.uuid, "Party", Component.text()
                         .append(initiatorProfile.api().getChatFormat())
-                        .append(Component.text(" has invited ", MC.CC.GRAY.getTextColor()))
-                        .append(targetProfile.api().getChatFormat())
-                        .append(Component.text(" to the party!", MC.CC.GRAY.getTextColor()))
+                        .append(Component.text(" has invited you to join their party. You have 60 seconds to accept.", MC.CC.GRAY.getTextColor()))
                         .build());
+
+                this.partyInvites.put(inviterUUID, new PartyInvite(partyUUID, inviterUUID, this.uuid));
+            } catch(ExecutionException | InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
             }
+        }).start();
 
-            Player.sendNotification(this.uuid, "Party", Component.text()
-                    .append(initiatorProfile.api().getChatFormat())
-                    .append(Component.text(" has invited you to join their party. You have 60 seconds to accept.", MC.CC.GRAY.getTextColor()))
-                    .build());
-
-            this.partyInvites.put(inviterUUID, new PartyInvite(partyUUID, inviterUUID, this.uuid));
-        } else {
-            Atom.getAtom().getPigeon().broadcast(new MessagePlayerPayload(inviterUUID, MC.Chat.notificationMessage("Party",
-                    Component.text("Unable to invite that player to the party.", MC.CC.GRAY.getTextColor()))));
-        }
     }
 
     public void sendConversationMessage(Player target, String message) {
@@ -119,7 +132,7 @@ public class Player {
     }
 
     public PartyPlayerOfflineTimer getPartyPlayerOfflineTimer() {
-        return (PartyPlayerOfflineTimer) Atom.getAtom().getManager().getTimers().stream().filter(timer -> timer instanceof PartyPlayerOfflineTimer && ((PartyPlayerOfflineTimer) timer).getPlayer().equals(this.uuid)).findFirst().orElse(null);
+        return (PartyPlayerOfflineTimer) Atom.getAtom().getTimerManager().getTimers().stream().filter(timer -> timer instanceof PartyPlayerOfflineTimer && ((PartyPlayerOfflineTimer) timer).getPlayer().equals(this.uuid)).findFirst().orElse(null);
     }
 
     public static Player getPlayerByUuid(UUID uuid) {

@@ -1,5 +1,6 @@
 package com.customwrld.atom.network;
 
+import com.customwrld.atom.Atom;
 import com.customwrld.commonlib.modules.pigeon.payloads.minecraft.MessagePlayerPayload;
 import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
@@ -44,14 +45,17 @@ public class Party {
 
         this.members.add(player);
 
-        Profile profile = Profile.getProfile(player);
+        Atom.getAtom().getProfilesManager()
+                .getProfile(player)
+                .thenAccept(profile -> {
+                    if (profile == null) { return; }
+                    this.sendPartyMessage(Component.text()
+                            .append(profile.api().getChatFormat())
+                            .append(Component.text(" has joined the party.", MC.CC.GREEN.getTextColor()))
+                            .build());
+                });
 
-        if (profile != null) {
-            this.sendPartyMessage(Component.text()
-                    .append(profile.api().getChatFormat())
-                    .append(Component.text(" has joined the party.", MC.CC.GREEN.getTextColor()))
-                    .build());
-        }
+
     }
 
     public void removeMember(UUID uuid) {
@@ -59,9 +63,8 @@ public class Party {
     }
 
     public void sendPartyMessage(UUID initiator, String message) {
-        Profile profile = Profile.getProfile(initiator);
-
-        if (profile != null) {
+        Profile.getProfile(initiator).thenAccept(profile -> {
+            if (profile == null) { return; }
             for (UUID uuid : this.getMembers()) {
                 PigeonUtil.broadcast(new MessagePlayerPayload(uuid, MC.Chat.notificationMessage("Party",
                         Component.text()
@@ -70,7 +73,9 @@ public class Party {
                                 .append(Component.text(message))
                                 .build())));
             }
-        }
+        });
+
+
     }
 
     public void sendPartyMessage(Component message) {

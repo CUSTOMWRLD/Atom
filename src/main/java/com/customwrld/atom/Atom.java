@@ -1,8 +1,8 @@
 package com.customwrld.atom;
 
 import com.customwrld.atom.listeners.*;
-import com.customwrld.atom.network.*;
-
+import com.customwrld.atom.managers.ProfilesManager;
+import com.customwrld.atom.network.Server;
 import com.customwrld.atom.util.Logger;
 import com.customwrld.atom.util.timer.TimerManager;
 import com.customwrld.commonlib.CommonLib;
@@ -12,6 +12,8 @@ import com.google.gson.GsonBuilder;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import lombok.Getter;
+import org.ehcache.CacheManager;
+import org.ehcache.config.builders.CacheManagerBuilder;
 
 import java.util.Arrays;
 
@@ -26,12 +28,16 @@ public class Atom {
 
     private final Gson gson;
 
-    private final TimerManager manager;
+    private final TimerManager timerManager;
 
     private MongoClient mongoClient;
     private MongoDatabase mongoDatabase;
 
     private Pigeon pigeon;
+
+    private CacheManager cacheManager;
+
+    private ProfilesManager profilesManager;
 
     public Atom() {
         long start = System.currentTimeMillis();
@@ -42,7 +48,7 @@ public class Atom {
 
         this.gson = new GsonBuilder().create();
 
-        this.manager = new TimerManager();
+        this.timerManager = new TimerManager();
 
         new Thread(() -> {
             while (true) {
@@ -56,6 +62,10 @@ public class Atom {
         }).start();
 
         loadMongo();
+
+        this.cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
+        this.profilesManager = new ProfilesManager(this.cacheManager);
+
         loadPigeon();
 
         new CommonLib(this.mongoClient, this.mongoDatabase, this.pigeon);
@@ -65,7 +75,6 @@ public class Atom {
 
     private void loadMongo() {
         this.mongoClient = new MongoClient("127.0.0.1", 27017);
-
         this.mongoDatabase = mongoClient.getDatabase("CUSTOMWRLD");
     }
 
@@ -78,6 +87,7 @@ public class Atom {
                 new ConversationListener(),
                 new FriendListener(),
                 new PartyListener(),
+                new ProfileListener(),
                 new ProxyListener(),
                 new RankListener()
         ).forEach(listener -> this.pigeon.getListenersRegistry().registerListener(listener));

@@ -12,7 +12,7 @@ public class SyncCodeTimer extends Timer {
     public final SyncCode syncCode;
 
     public SyncCodeTimer(SyncCode syncCode) {
-        super(TimerType.COUNTDOWN, Atom.getAtom().getManager());
+        super(TimerType.COUNTDOWN, Atom.getAtom().getTimerManager());
         setDuration(TimeUnit.MINUTES.toMillis(5));
         this.syncCode = syncCode;
     }

@@ -4,7 +4,6 @@ import com.customwrld.atom.Atom;
 import com.customwrld.atom.network.Party;
 import com.customwrld.atom.util.timer.api.Timer;
 import com.customwrld.atom.util.timer.api.TimerType;
-import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
@@ -18,7 +17,7 @@ public class PartyPlayerOfflineTimer extends Timer {
     private final UUID player;
 
     public PartyPlayerOfflineTimer(UUID player) {
-        super(TimerType.COUNTDOWN, Atom.getAtom().getManager());
+        super(TimerType.COUNTDOWN, Atom.getAtom().getTimerManager());
         setDuration(TimeUnit.MINUTES.toMillis(5));
         this.player = player;
     }
@@ -39,14 +38,15 @@ public class PartyPlayerOfflineTimer extends Timer {
             } else {
                 party.removeMember(this.player);
 
-                Profile profile = Profile.getProfile(this.player);
-
-                if(profile != null) {
-                    party.sendPartyMessage(Component.text()
-                            .append(profile.api().getChatFormat())
-                            .append(Component.text(" has been removed from the party for being offline.", MC.CC.RED.getTextColor()))
-                            .build());
-                }
+                Atom.getAtom().getProfilesManager()
+                        .getProfile(this.player)
+                        .thenAccept(profile -> {
+                            if(profile == null) { return; }
+                            party.sendPartyMessage(Component.text()
+                                    .append(profile.api().getChatFormat())
+                                    .append(Component.text(" has been removed from the party for being offline.", MC.CC.RED.getTextColor()))
+                                    .build());
+                        });
             }
         }
     }

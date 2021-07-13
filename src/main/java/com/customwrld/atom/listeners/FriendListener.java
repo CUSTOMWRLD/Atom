@@ -1,5 +1,7 @@
 package com.customwrld.atom.listeners;
 
+import com.customwrld.atom.Atom;
+import com.customwrld.atom.managers.ProfilesManager;
 import com.customwrld.atom.network.FriendRequest;
 import com.customwrld.atom.network.Player;
 import com.customwrld.commonlib.modules.pigeon.payloads.friend.FriendRequestAcceptPayload;
@@ -13,6 +15,7 @@ import com.customwrld.pigeon.listeners.Listener;
 import net.kyori.adventure.text.Component;
 
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 @PayloadListener
 public class FriendListener implements Listener {
@@ -32,9 +35,13 @@ public class FriendListener implements Listener {
         friendRequest.getTimer().start();
         FriendRequest.friendRequestList.add(friendRequest);
 
-        Player.sendMessage(initiatorUUID,
-                Component.text("You sent a friend request to " + Profile.getProfile(payload.getTarget()).getName() + ", they have 5 minutes to accept it!", MC.CC.YELLOW.getTextColor()));
-    }
+        Atom.getAtom().getProfilesManager()
+                .getProfile(payload.getTarget())
+                .thenAccept(profile -> {
+                    Player.sendMessage(initiatorUUID,
+                            Component.text("You sent a friend request to " + profile.getName() + ", they have 5 minutes to accept it!", MC.CC.YELLOW.getTextColor()));
+                });
+     }
 
     @PayloadHandler
     public void onFriendRequestAccept(FriendRequestAcceptPayload payload) {
@@ -56,33 +63,42 @@ public class FriendListener implements Listener {
 
     @PayloadHandler
     public void onFriendRequestDeny(FriendRequestDenyPayload payload) {
-        UUID initiatorUUID = payload.getInitiator();
-        UUID targetUUID = payload.getTarget();
+        new Thread(() -> {
+            try {
+                final ProfilesManager profilesManager = Atom.getAtom().getProfilesManager();
 
-        FriendRequest friendRequest = FriendRequest.getRequestByUuid(targetUUID, initiatorUUID);
+                UUID initiatorUUID = payload.getInitiator();
+                UUID targetUUID = payload.getTarget();
 
-        if (friendRequest == null) {
-            Player.sendMessage(initiatorUUID,
-                    Component.text("That player hasn't invite you to be friends.", MC.CC.RED.getTextColor()));
-            return;
-        }
+                FriendRequest friendRequest = FriendRequest.getRequestByUuid(targetUUID, initiatorUUID);
 
-        Profile targetProfile = Profile.getProfile(targetUUID);
+                if (friendRequest == null) {
+                    Player.sendMessage(initiatorUUID,
+                            Component.text("That player hasn't invite you to be friends.", MC.CC.RED.getTextColor()));
+                    return;
+                }
 
-        if(targetProfile != null) {
-            Player.sendMessage(initiatorUUID,
-                    Component.text("You denied " + targetProfile.getName() + "'s friend request.", MC.CC.RED.getTextColor()));
-        }
+                Profile targetProfile = profilesManager.getProfile(targetUUID).get();
 
-        Profile initiatorProfile = Profile.getProfile(initiatorUUID);
+                if(targetProfile != null) {
+                    Player.sendMessage(initiatorUUID,
+                            Component.text("You denied " + targetProfile.getName() + "'s friend request.", MC.CC.RED.getTextColor()));
+                }
 
-        if(initiatorProfile != null) {
-            Player.sendMessage(targetUUID,
-                    Component.text(initiatorProfile.getName() + " denied your friend request.", MC.CC.RED.getTextColor()));
-        }
+                Profile initiatorProfile = profilesManager.getProfile(initiatorUUID).get();
 
-        friendRequest.getTimer().stop();
-        FriendRequest.removeRequests(initiatorUUID, targetUUID);
+                if(initiatorProfile != null) {
+                    Player.sendMessage(targetUUID,
+                            Component.text(initiatorProfile.getName() + " denied your friend request.", MC.CC.RED.getTextColor()));
+                }
+
+                friendRequest.getTimer().stop();
+                FriendRequest.removeRequests(initiatorUUID, targetUUID);
+            } catch(ExecutionException | InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }
+        }).start();
     }
 
 }

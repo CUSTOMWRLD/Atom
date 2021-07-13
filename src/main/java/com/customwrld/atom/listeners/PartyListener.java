@@ -1,10 +1,10 @@
 package com.customwrld.atom.listeners;
 
-import com.customwrld.atom.network.Player;
+import com.customwrld.atom.Atom;
 import com.customwrld.atom.network.Party;
 import com.customwrld.atom.network.PartyInvite;
+import com.customwrld.atom.network.Player;
 import com.customwrld.commonlib.modules.pigeon.payloads.party.*;
-import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
 import com.customwrld.pigeon.annotations.PayloadHandler;
 import com.customwrld.pigeon.annotations.PayloadListener;
@@ -169,14 +169,15 @@ public class PartyListener implements Listener {
         if (party != null) {
             party.removeMember(targetUUID);
 
-            Profile profile = Profile.getProfile(targetUUID);
-
-            if(profile != null) {
-                party.sendPartyMessage(Component.text()
-                        .append(profile.api().getChatFormat())
-                        .append(Component.text(" has been kicked from the party.", MC.CC.RED.getTextColor()))
-                        .build());
-            }
+            Atom.getAtom().getProfilesManager()
+                    .getProfile(targetUUID)
+                    .thenAccept(profile -> {
+                        if(profile == null) { return; }
+                        party.sendPartyMessage(Component.text()
+                                .append(profile.api().getChatFormat())
+                                .append(Component.text(" has been kicked from the party.", MC.CC.RED.getTextColor()))
+                                .build());
+                    });
 
             Player target = Player.getPlayerByUuid(targetUUID);
 
@@ -193,7 +194,6 @@ public class PartyListener implements Listener {
     @PayloadHandler
     public void onPartyLeave(PartyLeavePayload payload) {
         UUID initiatorUUID = payload.getInitiator();
-        Profile profile = Profile.getProfile(initiatorUUID);
         Player initiator = Player.getPlayerByUuid(initiatorUUID);
 
         if (initiator == null) {
@@ -213,12 +213,16 @@ public class PartyListener implements Listener {
 
             party.removeMember(initiatorUUID);
 
-            if(profile != null) {
-                party.sendPartyMessage(Component.text()
-                        .append(profile.api().getChatFormat())
-                        .append(Component.text(" has left the party.", MC.CC.RED.getTextColor()))
-                        .build());
-            }
+            Atom.getAtom().getProfilesManager()
+                    .getProfile(initiatorUUID)
+                    .thenAccept(profile -> {
+                        if(profile == null) { return; }
+                        party.sendPartyMessage(Component.text()
+                                .append(profile.api().getChatFormat())
+                                .append(Component.text(" has left the party.", MC.CC.RED.getTextColor()))
+                                .build());
+                    });
+
 
             Player.sendNotification(initiatorUUID, "Party",
                     Component.text("You left the party.", MC.CC.RED.getTextColor()));
@@ -245,7 +249,6 @@ public class PartyListener implements Listener {
     public void onPartyTransfer(PartyTransferPayload payload) {
         UUID initiatorUUID = payload.getInitiator();
         UUID targetUUID = payload.getTarget();
-        Profile profile = Profile.getProfile(targetUUID);
         Player initiator = Player.getPlayerByUuid(initiatorUUID);
 
         if (initiator == null) {
@@ -259,12 +262,15 @@ public class PartyListener implements Listener {
         if(party != null) {
 
             if(party.getLeader().equals(initiatorUUID)) {
-                if(profile != null) {
-                    party.sendPartyMessage(Component.text()
-                            .append(Component.text("The party has been transferred to ", MC.CC.RED.getTextColor()))
-                            .append(profile.api().getChatFormat())
-                            .build());
-                }
+                Atom.getAtom().getProfilesManager()
+                        .getProfile(targetUUID)
+                        .thenAccept(profile -> {
+                            if(profile == null) { return; }
+                            party.sendPartyMessage(Component.text()
+                                    .append(Component.text("The party has been transferred to ", MC.CC.RED.getTextColor()))
+                                    .append(profile.api().getChatFormat())
+                                    .build());
+                        });
 
                 party.setLeader(targetUUID);
             } else {

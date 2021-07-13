@@ -1,5 +1,7 @@
 package com.customwrld.atom.network;
 
+import com.customwrld.atom.Atom;
+import com.customwrld.atom.managers.ProfilesManager;
 import com.customwrld.atom.timers.FriendRequestTimer;
 import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
@@ -10,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 @Getter
 public class FriendRequest {
@@ -52,27 +55,29 @@ public class FriendRequest {
     }
 
     public void accept() {
+        new Thread(() -> {
+            try {
+                final ProfilesManager profilesManager = Atom.getAtom().getProfilesManager();
 
+                Profile initiatorProfile = profilesManager.getProfile(initiator).get();
+                Profile targetProfile = profilesManager.getProfile(target).get();
 
+                Player.sendNotification(target, "Friend",
+                        Component.text("You are now friends with " + initiatorProfile.getName(), MC.CC.GREEN.getTextColor()));
 
-        Profile initiatorProfile = Profile.getProfile(initiator);
-        Profile targetProfile = Profile.getProfile(target);
+                Player.sendNotification(initiator, "Friend",
+                        Component.text("You are now friends with " + targetProfile.getName(), MC.CC.GREEN.getTextColor()));
 
-        Player.sendNotification(this.target, "Friend",
-                Component.text("You are now friends with " + initiatorProfile.getName(), MC.CC.GREEN.getTextColor()));
+                initiatorProfile.getFriends().add(target);
+                targetProfile.getFriends().add(initiator);
 
-        Player.sendNotification(this.initiator, "Friend",
-                Component.text("You are now friends with " + targetProfile.getName(), MC.CC.GREEN.getTextColor()));
-
-        initiatorProfile.getFriends().add(this.target);
-        targetProfile.getFriends().add(this.initiator);
-
-        initiatorProfile.save();
-        targetProfile.save();
-
-        // TODO: This
-//        new RecalculateProfilePayload();
-//        new RecalculateProfilePayload();
+                profilesManager.updateProfile(initiatorProfile);
+                profilesManager.updateProfile(targetProfile);
+            } catch(InterruptedException | ExecutionException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }
+        }).start();
     }
 
 }

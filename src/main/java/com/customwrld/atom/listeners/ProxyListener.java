@@ -1,7 +1,8 @@
 package com.customwrld.atom.listeners;
 
-import com.customwrld.atom.network.Player;
+import com.customwrld.atom.Atom;
 import com.customwrld.atom.network.Party;
+import com.customwrld.atom.network.Player;
 import com.customwrld.atom.network.Server;
 import com.customwrld.atom.timers.PartyPlayerOfflineTimer;
 import com.customwrld.commonlib.modules.pigeon.payloads.minecraft.MessagePlayerPayload;
@@ -9,7 +10,6 @@ import com.customwrld.commonlib.modules.pigeon.payloads.network.ProxyPlayerConne
 import com.customwrld.commonlib.modules.pigeon.payloads.network.ProxyPlayerDisconnectPayload;
 import com.customwrld.commonlib.modules.pigeon.payloads.network.ProxyPlayerSwitchPayload;
 import com.customwrld.commonlib.modules.pigeon.payloads.network.ServerUpdatePayload;
-import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
 import com.customwrld.commonlib.util.PigeonUtil;
 import com.customwrld.pigeon.annotations.PayloadHandler;
@@ -30,7 +30,6 @@ public class ProxyListener implements Listener {
     @PayloadHandler
     public void onProxyPlayerConnect(ProxyPlayerConnectPayload payload) {
         UUID uuid = payload.getUuid();
-        Profile profile = Profile.getProfile(uuid);
         Player player = Player.getPlayerByUuid(payload.getUuid());
 
         if (player == null) {
@@ -43,21 +42,23 @@ public class ProxyListener implements Listener {
             playerOfflineTimer.stop();
         }
 
-        if (profile != null) {
-            if (profile.api().getAllPermissions().contains("flame.staff")) {
-                PigeonUtil.broadcast(new MessagePlayerPayload("flame.staff", Component.text()
-                        .append(profile.api().getChatFormat())
-                        .append(Component.text(" has connected to ", MC.CC.GRAY.getTextColor()))
-                        .append(Component.text(payload.getServer(), MC.CC.WHITE.getTextColor()))
-                        .build()));
-            }
-        }
+        Atom.getAtom().getProfilesManager()
+                .getProfile(uuid)
+                .thenAccept(profile -> {
+                    if(profile == null) { return; }
+                    if (profile.api().getAllPermissions().contains("flame.staff")) {
+                        PigeonUtil.broadcast(new MessagePlayerPayload("flame.staff", Component.text()
+                                .append(profile.api().getChatFormat())
+                                .append(Component.text(" has connected to ", MC.CC.GRAY.getTextColor()))
+                                .append(Component.text(payload.getServer(), MC.CC.WHITE.getTextColor()))
+                                .build()));
+                    }
+                });
     }
 
     @PayloadHandler
     public void onProxyPlayerSwitch(ProxyPlayerSwitchPayload payload) {
         UUID uuid = payload.getUuid();
-        Profile profile = Profile.getProfile(uuid);
         Player player = Player.getPlayerByUuid(payload.getUuid());
 
         if(player == null) {
@@ -72,17 +73,20 @@ public class ProxyListener implements Listener {
             playerOfflineTimer.stop();
         }
 
-        if (profile != null) {
-            if (profile.api().getAllPermissions().contains("flame.staff")) {
-                PigeonUtil.broadcast(new MessagePlayerPayload("flame.staff", Component.text()
-                        .append(profile.api().getChatFormat())
-                        .append(Component.text(" has switched to ", MC.CC.GRAY.getTextColor()))
-                        .append(Component.text(payload.getServerTo(), MC.CC.WHITE.getTextColor()))
-                        .append(Component.text(" from ", MC.CC.GRAY.getTextColor()))
-                        .append(Component.text(payload.getServerFrom(), MC.CC.WHITE.getTextColor()))
-                        .build()));
-            }
-        }
+        Atom.getAtom().getProfilesManager()
+                .getProfile(uuid)
+                .thenAccept(profile -> {
+                    if (profile == null) { return; }
+                    if (profile.api().getAllPermissions().contains("flame.staff")) {
+                        PigeonUtil.broadcast(new MessagePlayerPayload("flame.staff", Component.text()
+                                .append(profile.api().getChatFormat())
+                                .append(Component.text(" has switched to ", MC.CC.GRAY.getTextColor()))
+                                .append(Component.text(payload.getServerTo(), MC.CC.WHITE.getTextColor()))
+                                .append(Component.text(" from ", MC.CC.GRAY.getTextColor()))
+                                .append(Component.text(payload.getServerFrom(), MC.CC.WHITE.getTextColor()))
+                                .build()));
+                    }
+                });
 
         player.setCurrentServer(payload.getServerTo());
 
@@ -103,17 +107,19 @@ public class ProxyListener implements Listener {
             }
         }
 
-        Profile profile = Profile.getProfile(payload.getUuid());
+        Atom.getAtom().getProfilesManager()
+                .getProfile(payload.getUuid())
+                .thenAccept(profile -> {
+                    if (profile == null) { return; }
+                    if (profile.api().getAllPermissions().contains("flame.staff")) {
+                        PigeonUtil.broadcast(new MessagePlayerPayload("flame.staff", Component.text()
+                                .append(profile.api().getChatFormat())
+                                .append(Component.text(" disconnected from ", MC.CC.GRAY.getTextColor()))
+                                .append(Component.text(payload.getServer(), MC.CC.WHITE.getTextColor()))
+                                .build()));
+                    }
+                });
 
-        if (profile != null) {
-            if (profile.api().getAllPermissions().contains("flame.staff")) {
-                PigeonUtil.broadcast(new MessagePlayerPayload("flame.staff", Component.text()
-                        .append(profile.api().getChatFormat())
-                        .append(Component.text(" disconnected from ", MC.CC.GRAY.getTextColor()))
-                        .append(Component.text(payload.getServer(), MC.CC.WHITE.getTextColor()))
-                        .build()));
-            }
-        }
     }
 
 }

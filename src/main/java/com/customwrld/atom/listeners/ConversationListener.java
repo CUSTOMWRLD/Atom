@@ -1,5 +1,7 @@
 package com.customwrld.atom.listeners;
 
+import com.customwrld.atom.Atom;
+import com.customwrld.atom.managers.ProfilesManager;
 import com.customwrld.atom.network.Player;
 import com.customwrld.commonlib.modules.pigeon.payloads.conversation.ConversationMessagePayload;
 import com.customwrld.commonlib.modules.pigeon.payloads.conversation.ConversationReplyPayload;
@@ -11,6 +13,7 @@ import com.customwrld.pigeon.listeners.Listener;
 import net.kyori.adventure.text.Component;
 
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 @PayloadListener
 public class ConversationListener implements Listener {
@@ -40,53 +43,63 @@ public class ConversationListener implements Listener {
 
     @PayloadHandler
     public void onConversationReply(ConversationReplyPayload payload) {
-        UUID initiatorUUID = payload.getInitiator();
-        Player initiator = Player.getPlayerByUuid(initiatorUUID);
-        String message = payload.getMessage();
+        new Thread(() -> {
+            try {
+                final ProfilesManager profilesManager = Atom.getAtom().getProfilesManager();
 
-        if (initiator == null) {
-            Player.sendMessage(initiatorUUID,
-                    Component.text("An error has occurred, please try rejoining the network.", MC.CC.RED.getTextColor()));
-            return;
-        }
+                UUID initiatorUUID = payload.getInitiator();
+                Player initiator = Player.getPlayerByUuid(initiatorUUID);
+                String message = payload.getMessage();
 
-        Player lastMessaged = initiator.getLastMessaged();
+                if(initiator == null) {
+                    Player.sendMessage(initiatorUUID,
+                            Component.text("An error has occurred, please try rejoining the network.", MC.CC.RED.getTextColor()));
+                    return;
+                }
 
-        if (lastMessaged == null) {
-            Player.sendMessage(initiatorUUID,
-                    Component.text("You haven't started a conversation with anybody.", MC.CC.RED.getTextColor()));
-            return;
-        }
+                Player lastMessaged = initiator.getLastMessaged();
 
-        if (Player.getPlayerByUuid(lastMessaged.getUuid()) == null) {
-            Player.sendMessage(initiatorUUID,
-                    Component.text("That player is currently not online.", MC.CC.RED.getTextColor()));
-            return;
-        }
+                if(lastMessaged == null) {
+                    Player.sendMessage(initiatorUUID,
+                            Component.text("You haven't started a conversation with anybody.", MC.CC.RED.getTextColor()));
+                    return;
+                }
 
-        Profile targetProfile = Profile.getProfile(lastMessaged.getUuid());
+                if(Player.getPlayerByUuid(lastMessaged.getUuid()) == null) {
+                    Player.sendMessage(initiatorUUID,
+                            Component.text("That player is currently not online.", MC.CC.RED.getTextColor()));
+                    return;
+                }
 
-        if (targetProfile == null) {
-            Player.sendMessage(initiatorUUID,
-                    Component.text("Could not resolve player information.", MC.CC.RED.getTextColor()));
-            return;
-        }
+                Profile targetProfile = profilesManager.getProfile(lastMessaged.getUuid()).get();
 
-        Profile initiatorProfile = Profile.getProfile(initiator.getUuid());
+                if(targetProfile == null) {
+                    Player.sendMessage(initiatorUUID,
+                            Component.text("Could not resolve player information.", MC.CC.RED.getTextColor()));
+                    return;
+                }
 
-        if (initiatorProfile == null) {
-            Player.sendMessage(initiatorUUID,
-                    Component.text("Failed to load your profile. Try again later.", MC.CC.RED.getTextColor()));
-            return;
-        }
+                Profile initiatorProfile = profilesManager.getProfile(initiator.getUuid()).get();
 
-        if (targetProfile.api().isIgnoring(initiatorProfile) || !targetProfile.getOptionsProfile().isReceivingConversations()) {
-            Player.sendMessage(initiatorUUID,
-                    Component.text("That player is not receiving new conversations right now.", MC.CC.RED.getTextColor()));
-            return;
-        }
+                if(initiatorProfile == null) {
+                    Player.sendMessage(initiatorUUID,
+                            Component.text("Failed to load your profile. Try again later.", MC.CC.RED.getTextColor()));
+                    return;
+                }
 
-        initiator.reply(message);
+                if(targetProfile.api().isIgnoring(initiatorProfile) || !targetProfile.getOptionsProfile().isReceivingConversations()) {
+                    Player.sendMessage(initiatorUUID,
+                            Component.text("That player is not receiving new conversations right now.", MC.CC.RED.getTextColor()));
+                    return;
+                }
+
+                initiator.reply(message);
+            } catch(ExecutionException | InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }
+        }).start();
+
     }
 
 }
