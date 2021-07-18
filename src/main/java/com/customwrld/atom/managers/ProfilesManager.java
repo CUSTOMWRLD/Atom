@@ -2,17 +2,22 @@ package com.customwrld.atom.managers;
 
 import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.modules.profile.ProfileQueryResult;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
+import org.bson.Document;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public class ProfilesManager {
 
@@ -80,6 +85,80 @@ public class ProfilesManager {
                     cache.put(profile.getId(), profile);
 
                     return profile;
+                });
+    }
+
+    public CompletableFuture<List<Profile>> getProfilesByNames(List<String> names) {
+        return new CompletableFuture<List<Profile>>()
+                .completeAsync(() -> {
+                    List<Profile> profiles = new ArrayList<>();
+
+                    List<String> searchable = names.stream()
+                            .map(String::toUpperCase)
+                            .collect(Collectors.toList());
+
+                    for(Cache.Entry<UUID, Profile> ent : this.cache) {
+                        var profile = ent.getValue();
+                        for(final var it = searchable.iterator(); it.hasNext();) {
+                            var name = it.next();
+                            if(name == null || name.isEmpty()) { continue; }
+
+                            if(profile.getName().equals(name)) {
+                                it.remove();
+                                profiles.add(profile);
+                            }
+                        }
+                    }
+
+                    var documents = Profile.getCollection().find(Filters.in("searchableName", searchable));
+
+                    try(MongoCursor<Document> cursor = documents.cursor()) {
+                        while(cursor.hasNext()) {
+                            var document = cursor.next();
+
+                            var profile = Profile.fromDocument(document);
+                            cache.put(profile.getId(), profile);
+                        }
+                    }
+
+                    return profiles;
+                });
+    }
+
+    public CompletableFuture<List<Profile>> getProfilesByIds(List<UUID> ids) {
+        return new CompletableFuture<List<Profile>>()
+                .completeAsync(() -> {
+                    List<Profile> profiles = new ArrayList<>();
+
+                    for(Cache.Entry<UUID, Profile> ent : this.cache) {
+                        var profile = ent.getValue();
+                        for(final var it = ids.iterator(); it.hasNext();) {
+                            var id = it.next();
+                            if(id == null) { continue; }
+
+                            if(profile.getId().equals(id)) {
+                                it.remove();
+                                profiles.add(profile);
+                            }
+                        }
+                    }
+
+                    List<String> searchable = ids.stream()
+                            .map(UUID::toString)
+                            .collect(Collectors.toList());
+
+                    var documents = Profile.getCollection().find(Filters.in("_id", searchable));
+
+                    try(MongoCursor<Document> cursor = documents.cursor()) {
+                        while(cursor.hasNext()) {
+                            var document = cursor.next();
+
+                            var profile = Profile.fromDocument(document);
+                            cache.put(profile.getId(), profile);
+                        }
+                    }
+
+                    return profiles;
                 });
     }
 

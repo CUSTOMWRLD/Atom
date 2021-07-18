@@ -11,6 +11,8 @@ import com.customwrld.pigeon.annotations.PayloadListener;
 import com.customwrld.pigeon.feedback.RequiredState;
 import com.customwrld.pigeon.listeners.Listener;
 
+import java.util.Collections;
+
 @PayloadListener
 public class ProfileListener implements Listener {
 
@@ -34,51 +36,124 @@ public class ProfileListener implements Listener {
     public void onProfileRequest(final ProfileRequestPayload payload) {
         final var profilesManager = Atom.getAtom().getProfilesManager();
 
-        var name = payload.getName();
-        var id = payload.getId();
+        var type = payload.getType();
+        if(type == ProfileRequestPayload.Type.SINGLE) {
+            var name = payload.getName();
+            var id = payload.getId();
 
-        if(id != null && name != null) {
-            var profile = new Profile(name, id);
-            profilesManager
-                    .getProfile(id)
-                    .thenAccept(existingProfile -> {
-                        if(existingProfile != null) {
-                            payload.sendResponse(new ProfileRequestPayload(ProfileQueryResult.RETRIEVED, existingProfile));
-                            return;
+            if(id != null && name != null) {
+                profilesManager
+                        .getProfile(id)
+                        .thenAccept(existingProfile -> {
+                            if(existingProfile != null) {
+                                payload.sendResponse(new ProfileRequestPayload(ProfileQueryResult.RETRIEVED, Collections.singletonList(existingProfile)));
+                                return;
+                            }
+
+                            var profile = new Profile(name, id);
+                            profilesManager
+                                    .createProfile(profile)
+                                    .thenAccept(result -> payload.sendResponse(new ProfileRequestPayload(result, Collections.singletonList(profile))));
+                        });
+            } else if(id != null) {
+                profilesManager
+                        .getProfile(id)
+                        .thenAccept(profile -> {
+                            if(profile != null) {
+                                payload.sendResponse(new ProfileRequestPayload(
+                                        ProfileQueryResult.RETRIEVED,
+                                        Collections.singletonList(profile)));
+                            } else {
+                                payload.sendResponse(new ProfileRequestPayload(
+                                        ProfileQueryResult.NOT_FOUND,
+                                        Collections.emptyList()));
+                            }
+                        });
+            } else if(name != null) {
+                profilesManager
+                        .getProfile(name)
+                        .thenAccept(profile -> {
+                            if(profile != null) {
+                                payload.sendResponse(new ProfileRequestPayload(
+                                        ProfileQueryResult.RETRIEVED,
+                                        Collections.singletonList(profile)));
+                            } else {
+                                payload.sendResponse(new ProfileRequestPayload(
+                                        ProfileQueryResult.NOT_FOUND,
+                                        Collections.emptyList()));
+                            }
+                        });
+            }
+        } else if(type == ProfileRequestPayload.Type.BULK) {
+            var names = payload.getNames();
+            var ids = payload.getIds();
+
+            if(payload.areConnected()) {
+                if((ids != null && !ids.isEmpty()) && (names != null && !names.isEmpty())) {
+                    var areConnected = payload.areConnected();
+                    if(areConnected) {
+                        final var nIt = names.iterator();
+                        final var iIt = ids.iterator();
+                        while(nIt.hasNext()) {
+                            if(!iIt.hasNext()) { break; }
+
+                            var name = nIt.next();
+                            if(name == null || name.isEmpty()) { continue; }
+
+                            var id = iIt.next();
+                            if(id == null) { continue; }
+
+                            var profile = new Profile(name, id);
+                            profilesManager
+                                    .getProfile(id)
+                                    .thenAccept(existingProfile -> {
+                                        if(existingProfile != null) {
+                                            payload.sendResponse(new ProfileRequestPayload(ProfileQueryResult.RETRIEVED,
+                                                    Collections.singletonList(existingProfile)));
+                                            return;
+                                        }
+
+                                        profilesManager
+                                                .createProfile(profile)
+                                                .thenAccept(result -> payload.sendResponse(new ProfileRequestPayload(result,
+                                                        Collections.singletonList(profile))));
+                                    });
                         }
+                    }
+                }
+            } else {
+                if(ids != null && !ids.isEmpty()) {
+                    profilesManager
+                            .getProfilesByIds(ids)
+                            .thenAccept(profiles -> {
+                                if(profiles != null && !profiles.isEmpty()) {
+                                    payload.sendResponse(new ProfileRequestPayload(
+                                            ProfileQueryResult.RETRIEVED,
+                                            profiles));
+                                } else {
+                                    payload.sendResponse(new ProfileRequestPayload(
+                                            ProfileQueryResult.NOT_FOUND,
+                                            Collections.emptyList()));
+                                }
+                            });
+                }
 
-                        profilesManager
-                                .createProfile(profile)
-                                .thenAccept(result -> payload.sendResponse(new ProfileRequestPayload(result, profile)));
-                    });
-
-            return;
-        }
-
-        if(id != null) {
-            profilesManager
-                    .getProfile(id)
-                    .thenAccept(profile -> {
-                        payload.sendResponse(new ProfileRequestPayload(
-                                (profile != null) ?
-                                        ProfileQueryResult.RETRIEVED :
-                                        ProfileQueryResult.NOT_FOUND,
-                                profile));
-                    });
-
-            return;
-        }
-
-        if(name != null) {
-            profilesManager
-                    .getProfile(name)
-                    .thenAccept(profile -> {
-                        payload.sendResponse(new ProfileRequestPayload(
-                                (profile != null) ?
-                                        ProfileQueryResult.RETRIEVED :
-                                        ProfileQueryResult.NOT_FOUND,
-                                profile));
-                    });
+                if(names != null && !names.isEmpty()) {
+                    profilesManager
+                            .getProfilesByNames(names)
+                            .thenAccept(profiles -> {
+                                if(profiles != null && !profiles.isEmpty()) {
+                                    payload.sendResponse(new ProfileRequestPayload(
+                                            ProfileQueryResult.RETRIEVED,
+                                            profiles));
+                                } else {
+                                    payload.sendResponse(new ProfileRequestPayload(
+                                            ProfileQueryResult.NOT_FOUND,
+                                            Collections.emptyList()));
+                                }
+                            });
+                }
+            }
         }
     }
 
