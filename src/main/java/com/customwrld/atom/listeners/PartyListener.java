@@ -167,6 +167,18 @@ public class PartyListener implements Listener {
         Party party = Party.getPartyByMember(initiatorUUID);
 
         if (party != null) {
+            if(!party.getLeader().equals(initiatorUUID)) {
+                Player.sendMessage(initiatorUUID,
+                        Component.text("Only the leader can kick party members.", MC.CC.RED.getTextColor()));
+                return;
+            }
+
+            if(targetUUID.equals(initiatorUUID)) {
+                Player.sendMessage(initiatorUUID,
+                        Component.text("You cannot kick yourself from the party.", MC.CC.RED.getTextColor()));
+                return;
+            }
+
             party.removeMember(targetUUID);
 
             Atom.getAtom().getProfilesManager()

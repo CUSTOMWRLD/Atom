@@ -2,7 +2,6 @@ package com.customwrld.atom.network;
 
 import com.customwrld.atom.Atom;
 import com.customwrld.commonlib.modules.pigeon.payloads.minecraft.MessagePlayerPayload;
-import com.customwrld.commonlib.modules.profile.Profile;
 import com.customwrld.commonlib.util.MC;
 import com.customwrld.commonlib.util.PigeonUtil;
 import lombok.Getter;
@@ -66,19 +65,19 @@ public class Party {
     }
 
     public void sendPartyMessage(UUID initiator, String message) {
-        Profile.getProfile(initiator).thenAccept(profile -> {
-            if (profile == null) { return; }
-            for (UUID uuid : this.getMembers()) {
-                PigeonUtil.broadcast(new MessagePlayerPayload(uuid, MC.Chat.notificationMessage("Party",
-                        Component.text()
-                                .append(profile.api().getChatFormat())
-                                .append(Component.text(": ", MC.CC.GRAY.getTextColor()))
-                                .append(Component.text(message))
-                                .build())));
-            }
-        });
-
-
+        Atom.getAtom().getProfilesManager()
+                .getProfile(initiator)
+                .thenAccept(profile -> {
+                    if (profile == null) { return; }
+                    for (UUID uuid : this.getMembers()) {
+                        PigeonUtil.broadcast(new MessagePlayerPayload(uuid, MC.Chat.notificationMessage("Party",
+                                Component.text()
+                                        .append(profile.api().getChatFormat())
+                                        .append(Component.text(": ", MC.CC.GRAY.getTextColor()))
+                                        .append(Component.text(message))
+                                        .build())));
+                    }
+                });
     }
 
     public void sendPartyMessage(Component message) {

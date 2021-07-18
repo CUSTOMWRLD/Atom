@@ -54,6 +54,8 @@ public class ProxyListener implements Listener {
                                 .build()));
                     }
                 });
+
+        Player.getCachedPlayerList().put(uuid, player);
     }
 
     @PayloadHandler
@@ -64,8 +66,6 @@ public class ProxyListener implements Listener {
         if(player == null) {
             player = new Player(payload.getUuid(), payload.getPlayer(), payload.getServerTo());
         }
-
-        Player.getCachedPlayerList().remove(uuid);
 
         PartyPlayerOfflineTimer playerOfflineTimer = player.getPartyPlayerOfflineTimer();
 

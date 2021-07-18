@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Getter
 @Setter
@@ -74,11 +76,10 @@ public class Player {
             try {
                 final ProfilesManager profilesManager = Atom.getAtom().getProfilesManager();
 
-                Profile initiatorProfile = profilesManager.getProfile(inviterUUID).get();
-                Profile targetProfile = profilesManager.getProfile(this.uuid).get();
-                Player target = Player.getPlayerByUuid(this.uuid);
+                Profile initiatorProfile = profilesManager.getProfile(inviterUUID).get(10, TimeUnit.SECONDS);
+                Profile targetProfile = profilesManager.getProfile(this.uuid).get(10, TimeUnit.SECONDS);
 
-                if(initiatorProfile != null || targetProfile != null || target != null) {
+                if(initiatorProfile == null || targetProfile == null) {
                     Atom.getAtom().getPigeon().broadcast(new MessagePlayerPayload(inviterUUID, MC.Chat.notificationMessage("Party",
                         Component.text("Unable to invite that player to the party.", MC.CC.GRAY.getTextColor()))));
 
@@ -102,7 +103,7 @@ public class Player {
                         .build());
 
                 this.partyInvites.put(inviterUUID, new PartyInvite(partyUUID, inviterUUID, this.uuid));
-            } catch(ExecutionException | InterruptedException e) {
+            } catch(ExecutionException | InterruptedException | TimeoutException e) {
                 Thread.currentThread().interrupt();
                 e.printStackTrace();
             }
