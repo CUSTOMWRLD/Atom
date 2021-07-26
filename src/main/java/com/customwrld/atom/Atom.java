@@ -2,10 +2,10 @@ package com.customwrld.atom;
 
 import com.customwrld.atom.listeners.*;
 import com.customwrld.atom.managers.ProfilesManager;
-import com.customwrld.atom.network.Server;
 import com.customwrld.atom.util.Logger;
 import com.customwrld.atom.util.timer.TimerManager;
 import com.customwrld.commonlib.CommonLib;
+import com.customwrld.commonlib.modules.network.Server;
 import com.customwrld.pigeon.Pigeon;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
